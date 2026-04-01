@@ -1,7 +1,7 @@
 [project]
 name = "trumi"
 version = "0.1.0"
-description = "Add your description here"
+description = "Trossen Robotics Universal Manipulation Interface"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -11,7 +11,6 @@ dependencies = [
     "matplotlib>=3.10.8",
     "opencv-python>=4.13.0.92",
     "pandas>=3.0.1",
-    "pathlib>=1.0.1",
     "py-gpmf-parser>=0.1.1",
     "pyexiftool>=0.5.6",
     "scikit-fda>=0.10.1",
@@ -30,4 +29,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["utils"]
+packages = ["src/trumi/utils"]

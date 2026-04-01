@@ -4,6 +4,8 @@ from typing import Union
 
 import av
 
+ISO_DATETIME_FMT = r"%Y-%m-%dT%H:%M:%S.%fZ"
+
 
 def timecode_to_seconds(
     timecode: str, frame_rate: Union[int, float, Fraction]
@@ -36,12 +38,20 @@ def stream_get_start_datetime(stream: av.stream.Stream) -> datetime.datetime:
     """Get the precise start datetime of the first frame in a video stream.
 
     :param stream: PyAV video stream with timecode and creation_time metadata.
-    :return: Datetime of the first frame in UTC.
+    :return: Timezone-aware datetime of the first frame (UTC).
     """
     # read metadata
     frame_rate = stream.average_rate
-    tc = stream.metadata["timecode"]
-    creation_time = stream.metadata["creation_time"]
+    metadata = stream.metadata or {}
+    try:
+        tc = metadata["timecode"]
+        creation_time = metadata["creation_time"]
+    except KeyError as exc:
+        available_keys = ", ".join(sorted(metadata.keys())) or "<none>"
+        raise KeyError(
+            f"Required stream metadata key {exc!s} not found. "
+            f"Available metadata keys: {available_keys}"
+        ) from exc
 
     # get time within the day
     seconds_since_midnight = float(
@@ -50,10 +60,10 @@ def stream_get_start_datetime(stream: av.stream.Stream) -> datetime.datetime:
     delta = datetime.timedelta(seconds=seconds_since_midnight)
 
     # get dates
-    create_datetime = datetime.datetime.strptime(
-        creation_time, r"%Y-%m-%dT%H:%M:%S.%fZ"
+    create_datetime = datetime.datetime.strptime(creation_time, ISO_DATETIME_FMT)
+    create_datetime = create_datetime.replace(
+        hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc
     )
-    create_datetime = create_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
     start_datetime = create_datetime + delta
     return start_datetime
 
@@ -62,8 +72,11 @@ def mp4_get_start_datetime(mp4_path: str) -> datetime.datetime:
     """Return the precise start datetime of the first video frame in an MP4 file.
 
     :param mp4_path: Path to the MP4 file.
-    :return: Datetime of the first frame in UTC.
+    :return: Timezone-aware datetime of the first frame (UTC).
     """
     with av.open(mp4_path) as container:
-        stream = container.streams.video[0]
+        video_streams = container.streams.video
+        if not video_streams:
+            raise ValueError(f"No video streams found in MP4 file: {mp4_path}")
+        stream = video_streams[0]
         return stream_get_start_datetime(stream=stream)
