@@ -6,11 +6,11 @@ Organize raw GoPro MP4 videos into a structured demo directory for downstream pr
        under <session_dir> into it.
     2. If raw_videos/mapping.mp4 does not exist, rename the largest MP4 in
        raw_videos/ to mapping.mp4.
-    3. If raw_videos/gripper_calibration/ does not exist, create it and move the
-       earliest-recorded video per camera serial (excluding mapping.mp4) into it.
-    4. Move all mp4s in raw_videos/ to <session_dir>/demos/ with metadata-based directory names.
-    5. Create a relative symlink at each video's original path pointing to its new
-       location in demos/.
+    3. If raw_videos/gripper_calibration.mp4 does not exist, rename the earliest-
+       recorded MP4 (excluding mapping.mp4) to gripper_calibration.mp4.
+    4. Move all MP4s in raw_videos/ to <session_dir>/demos/ with metadata-based
+       directory names.
+    5. Remove raw_videos/ if it is empty after moving all files.
 
 :Usage:
     uv run python scripts_slam_pipeline/00_process_videos.py <session_dir> [<session_dir> ...]
@@ -41,8 +41,7 @@ def main(session_dir):
     """Process raw GoPro videos for one or more session directories.
 
     Expects MP4s to be in <session_dir>/raw_videos/. Moves and renames them into
-    <session_dir>/demos/ with a metadata-based directory name per video, leaving
-    a relative symlink at the original location for tools that reference raw paths.
+    <session_dir>/demos/ with a metadata-based directory name per video.
 
     :param session_dir: One or more session directory paths containing raw MP4 videos.
     """
@@ -141,7 +140,12 @@ def main(session_dir):
                         f"Available keys: {list(meta.keys())}"
                     )
                 out_dname = (
-                    "demo_" + cam_serial + "_" + start_date.strftime(DEMO_DATETIME_FMT)
+                    "demo_"
+                    + cam_serial
+                    + "_"
+                    + start_date.strftime(DEMO_DATETIME_FMT)
+                    + "_"
+                    + mp4_path.name
                 )
 
                 # special folders
@@ -151,6 +155,8 @@ def main(session_dir):
                         + cam_serial
                         + "_"
                         + start_date.strftime(DEMO_DATETIME_FMT)
+                        + "_"
+                        + mp4_path.name
                     )
                 elif mp4_path.name.startswith("gripper_cal"):
                     out_dname = (
@@ -158,6 +164,8 @@ def main(session_dir):
                         + cam_serial
                         + "_"
                         + start_date.strftime(DEMO_DATETIME_FMT)
+                        + "_"
+                        + mp4_path.name
                     )
 
                 # create directory
@@ -169,10 +177,12 @@ def main(session_dir):
                 out_video_path = this_out_dir.joinpath(vfname)
                 shutil.move(mp4_path, out_video_path)
 
-                # create symlink back from original location
-                rel_link = out_video_path.relative_to(mp4_path.parent, walk_up=True)
-                mp4_path.symlink_to(rel_link)
+        # remove raw_videos dir if empty
+        if input_dir.is_dir() and not any(input_dir.iterdir()):
+            input_dir.rmdir()
+            logger.info(f"Removed empty directory: {input_dir}")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()
