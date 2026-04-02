@@ -13,7 +13,7 @@ Organize raw GoPro MP4 videos into a structured demo directory for downstream pr
     5. Remove raw_videos/ if it is empty after moving all files.
 
 :Usage:
-    uv run python scripts_slam_pipeline/00_process_videos.py <session_dir> [<session_dir> ...]
+    uv run python scripts/scripts_slam_pipeline/00_process_videos.py <session_dir> [<session_dir> ...]
 """
 
 import logging
@@ -48,6 +48,9 @@ def main(session_dir):
     for session in session_dir:
         session = pathlib.Path(session).resolve()
 
+        if not session.is_dir():
+            raise click.ClickException(f"Session directory not found: '{session}'")
+
         # hardcode subdirs
         input_dir = session.joinpath("raw_videos")
         output_dir = session.joinpath("demos")
@@ -56,7 +59,7 @@ def main(session_dir):
         if not input_dir.is_dir():
             input_dir.mkdir()
             logger.info(
-                f"{input_dir.name} subdir doesn't exits! Creating one and moving all mp4 videos inside."
+                f"{input_dir.name} subdir doesn't exist! Creating one and moving all MP4 videos inside."
             )
             mp4_paths = list(session.glob(MP4_GLOB))
             if not mp4_paths:
