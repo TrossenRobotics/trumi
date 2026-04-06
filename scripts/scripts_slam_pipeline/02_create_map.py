@@ -5,7 +5,7 @@ Create an ORB-SLAM3 map atlas from a GoPro mapping video using a Docker-based SL
     1. Validate that raw_video.mp4 and imu_data.json exist in input_dir.
     2. Generate a predefined SLAM mask (mirror + finger regions).
     3. Run the ORB-SLAM3 Docker container with the video, IMU data, and optional mask.
-       The script automatically subsamples frames so IMU samples per frame >= 3.
+       ORB-SLAM3 automatically subsamples frames so IMU samples per frame >= 3.
        (eg. every 2nd frame at 120 fps so running SLAM at 60 fps.)
     4. Output map atlas (*.osa) and camera trajectory CSV.
 
@@ -13,6 +13,7 @@ Create an ORB-SLAM3 map atlas from a GoPro mapping video using a Docker-based SL
     uv run python scripts_slam_pipeline/02_create_map.py --input_dir <mapping_dir> [--map_path <output.osa>]
 """
 
+import logging
 import pathlib
 import subprocess
 
@@ -20,10 +21,14 @@ import click
 import cv2
 import numpy as np
 
-from utils.common.cv_util import draw_predefined_mask
+from trumi.utils.cv_util import GOPRO_2_7K_RESOLUTION, draw_predefined_mask
 
-# GoPro 2.7k resolution used for the SLAM mask
-GOPRO_2_7K_H, GOPRO_2_7K_W = 2028, 2704
+logger = logging.getLogger(__name__)
+
+# ORB-SLAM3 camera/IMU settings file path (inside the Docker container)
+SLAM_SETTING = (
+    "/ORB_SLAM3/Examples/Monocular-Inertial/gopro13_maxlens_fisheye_setting_v1_720.yaml"
+)
 
 
 @click.command(help="Create an ORB-SLAM3 map atlas from a GoPro mapping video.")
@@ -76,7 +81,7 @@ def main(input_dir, map_path, docker_image, no_mask):
     mask_path = mount_target.joinpath("slam_mask.png")
     if not no_mask:
         mask_write_path = video_dir.joinpath("slam_mask.png")
-        slam_mask = np.zeros((GOPRO_2_7K_H, GOPRO_2_7K_W), dtype=np.uint8)
+        slam_mask = np.zeros(GOPRO_2_7K_RESOLUTION, dtype=np.uint8)
         slam_mask = draw_predefined_mask(
             slam_mask, color=255, mirror=True, gripper=False, finger=True
         )
@@ -99,7 +104,7 @@ def main(input_dir, map_path, docker_image, no_mask):
         "--vocabulary",
         "/ORB_SLAM3/Vocabulary/ORBvoc.txt",
         "--setting",
-        "/ORB_SLAM3/Examples/Monocular-Inertial/gopro13_maxlens_fisheye_setting_v1_720.yaml",
+        SLAM_SETTING,
         "--input_video",
         str(video_path),
         "--input_imu_json",
@@ -120,12 +125,15 @@ def main(input_dir, map_path, docker_image, no_mask):
             cmd, cwd=str(video_dir), stdout=stdout_f, stderr=stderr_f
         )
 
-    if result.returncode == 0:
-        print(f"Done. Map saved to: {map_path}")
-        print(f"Logs: {stdout_path.name}, {stderr_path.name}")
-    else:
-        print(f"SLAM failed (exit code {result.returncode}). Check {stderr_path}")
+    if result.returncode != 0:
+        raise click.ClickException(
+            f"SLAM failed (exit code {result.returncode}). Check {stderr_path}"
+        )
+
+    logger.info("Done. Map saved to: %s", map_path)
+    logger.info("Logs: %s, %s", stdout_path.name, stderr_path.name)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()

@@ -1,11 +1,16 @@
 """OpenCV utilities"""
 
+from __future__ import annotations
+
 import copy
 from typing import Dict, Tuple
 
 import cv2
 import numpy as np
 import scipy.interpolate as si
+
+# GoPro 2.7K resolution as (height, width)
+GOPRO_2_7K_RESOLUTION = (2028, 2704)
 
 # =================== intrinsics ===================
 
@@ -19,7 +24,10 @@ def parse_fisheye_intrinsics(json_data: dict) -> Dict[str, np.ndarray]:
     :return: Dict with keys DIM (np.int64 [w, h]), K (3*3 float64 camera
         matrix), and D (4*1 float64 Kannala-Brandt distortion coefficients).
     """
-    assert json_data["intrinsic_type"] == "FISHEYE"
+    if json_data["intrinsic_type"] != "FISHEYE":
+        raise ValueError(
+            f"Expected intrinsic_type 'FISHEYE', got '{json_data['intrinsic_type']}'"
+        )
     intr_data = json_data["intrinsics"]
 
     # img size
@@ -83,12 +91,11 @@ def convert_fisheye_intrinsics_resolution(
 class FisheyeRectConverter:
     """Rectify fisheye images to a pinhole perspective with a given FOV."""
 
-    def __init__(self, K, D, DIM, out_size, out_fov):
+    def __init__(self, K, D, out_size, out_fov):
         """Pre-compute undistortion maps for the given camera and output spec.
 
         :param K: 3*3 fisheye camera matrix.
         :param D: 4*1 Kannala-Brandt distortion coefficients.
-        :param DIM: Input image dimensions as [width, height].
         :param out_size: Output image size as (width, height).
         :param out_fov: Vertical field of view of the output image in degrees.
         """
@@ -149,6 +156,10 @@ def parse_aruco_config(aruco_config_dict: dict):
         size = default_size
         if marker_id in marker_size_map:
             size = marker_size_map[marker_id]
+        if size is None:
+            raise ValueError(
+                f"No size defined for marker_id {marker_id} and no default provided"
+            )
         out_marker_size_map[marker_id] = size
 
     result = {"aruco_dict": aruco_dict, "marker_size_map": out_marker_size_map}
@@ -207,7 +218,7 @@ def detect_localize_aruco_tags(
             dtype=np.float32,
         )
         img_pts = undistorted.reshape(4, 1, 2).astype(np.float32)
-        ok, rvec, tvec = cv2.solveOnP(
+        ok, rvec, tvec = cv2.solvePnP(
             obj_pts, img_pts, K, np.zeros((4, 1)), flags=cv2.SOLVEPNP_IPPE_SQUARE
         )
         if not ok:
@@ -221,7 +232,7 @@ def detect_localize_aruco_tags(
 
 
 def get_charuco_board(
-    aruco_dict=cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100),
+    aruco_dict=None,
     tag_id_offset=50,
     grid_size=(8, 5),
     square_length_mm=50,
@@ -230,13 +241,15 @@ def get_charuco_board(
     """Create a ChArUco calibration board.
 
     :param aruco_dict: Base ArUco dictionary; markers are taken starting at
-        tag_id_offset.
+        tag_id_offset. Defaults to DICT_4X4_100.
     :param tag_id_offset: First marker ID to use from the dictionary.
     :param grid_size: Board grid as (cols, rows).
     :param square_length_mm: Checkerboard square side length in millimetres.
     :param tag_length_mm: ArUco marker side length in millimetres.
     :return: cv2.aruco.CharucoBoard instance.
     """
+    if aruco_dict is None:
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
 
     aruco_dict = cv2.aruco.Dictionary(
         aruco_dict.bytesList[tag_id_offset:], aruco_dict.markerSize
@@ -308,7 +321,7 @@ def get_gripper_width(tag_dict, left_id, right_id, nominal_z=0.072, z_tolerance=
 
 
 # =========== image mask ====================
-def canonical_to_pixel_coords(coords, img_shape=(2028, 2704)):
+def canonical_to_pixel_coords(coords, img_shape=GOPRO_2_7K_RESOLUTION):
     """Convert canonical (normalised) coordinates to pixel coordinates.
 
     :param coords: Array of shape (..., 2) in canonical (x, y) space.
@@ -319,7 +332,7 @@ def canonical_to_pixel_coords(coords, img_shape=(2028, 2704)):
     return pts
 
 
-def pixel_coords_to_canonical(pts, img_shape=(2028, 2704)):
+def pixel_coords_to_canonical(pts, img_shape=GOPRO_2_7K_RESOLUTION):
     """Convert pixel coordinates to canonical (normalised) coordinates.
 
     :param pts: Array of shape (..., 2) in pixel (x, y) space.
@@ -357,9 +370,8 @@ def get_mirror_canonical_polygon():
         [2237, 1806],
         [2573, 1800],
     ]
-    resolution = [2028, 2704]
-    left_coords = pixel_coords_to_canonical(left_pts, resolution)
-    right_coords = pixel_coords_to_canonical(right_pts, resolution)
+    left_coords = pixel_coords_to_canonical(left_pts)
+    right_coords = pixel_coords_to_canonical(right_pts)
     coords = np.stack([left_coords, right_coords])
     return coords
 
@@ -383,8 +395,7 @@ def get_gripper_canonical_polygon():
         [2703, 2027],
         [0, 2027],
     ]
-    resolution = [2028, 2704]
-    coords = pixel_coords_to_canonical(pts, resolution)
+    coords = pixel_coords_to_canonical(pts)
     return coords[None,]  # shape (1, N, 2)
 
 
@@ -412,8 +423,7 @@ def get_finger_canonical_polygon():
         [2703, 2027],
         [0, 2027],
     ]
-    resolution = [2028, 2704]
-    coords = pixel_coords_to_canonical(pts, resolution)
+    coords = pixel_coords_to_canonical(pts)
     return coords[None,]  # shape (1, N, 2)
 
 
