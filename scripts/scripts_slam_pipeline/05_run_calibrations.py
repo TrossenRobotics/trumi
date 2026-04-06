@@ -47,7 +47,7 @@ def main(input_dir, tag_det_threshold, nominal_z):
     :param tag_det_threshold: Minimum per-finger detection rate passed to calibrate_gripper_range.py.
     :param nominal_z: Expected finger tag depth in metres passed to calibrate_gripper_range.py.
     """
-    script_dir = pathlib.Path(__file__).parent.parent.joinpath("scripts")
+    script_dir = pathlib.Path(__file__).parent.parent
     session = pathlib.Path(input_dir).resolve()
     demos_dir = session.joinpath("demos")
     mapping_dirs = list(demos_dir.glob("mapping_*"))
@@ -100,7 +100,7 @@ def main(input_dir, tag_det_threshold, nominal_z):
         cmd = [
             sys.executable,
             str(script_path),
-            "--input",
+            "--input_path",
             str(tag_path),
             "--output",
             str(gripper_range_path),
