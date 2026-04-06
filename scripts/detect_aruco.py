@@ -14,6 +14,7 @@ Detect and localize ArUco tags in a GoPro video, writing per-frame results to a 
 """
 
 import json
+import logging
 import pathlib
 import pickle
 import sys
@@ -25,13 +26,15 @@ import numpy as np
 import yaml
 from tqdm import tqdm
 
-from utils.common.cv_util import (
+from trumi.utils.cv_util import (
     convert_fisheye_intrinsics_resolution,
     detect_localize_aruco_tags,
     draw_predefined_mask,
     parse_aruco_config,
     parse_fisheye_intrinsics,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @click.command(help="Detect and localize ArUco tags in a GoPro video.")
@@ -79,20 +82,20 @@ def main(input, output, camera_intrinsics, aruco_yaml, num_workers, slam_frame_s
         in_stream.thread_type = "AUTO"
         in_stream.thread_count = num_workers
 
-        in_res = np.array([in_stream.height, in_stream.width])[::-1]
+        in_res = np.array([in_stream.width, in_stream.height])
         fisheye_intr = convert_fisheye_intrinsics_resolution(
             opencv_intr_dict=raw_fisheye_intr, target_resolution=in_res
         )
 
         n_frames = in_stream.frames
-        print(f"Processing {n_frames} frames (stride={slam_frame_stride})...")
+        logger.info("Processing %d frames (stride=%d)...", n_frames, slam_frame_stride)
         slam_idx = 0
         for i, frame in tqdm(
             enumerate(in_container.decode(in_stream)), total=n_frames, file=sys.stdout
         ):
             if i % slam_frame_stride != 0:
                 continue
-            img = frame.to_ndarray(format="rgb24")
+            img = frame.to_ndarray(format="bgr24")
             frame_cts_sec = frame.pts * in_stream.time_base
             # mask out mirrors to avoid false detections in reflections
             img = draw_predefined_mask(
@@ -116,12 +119,17 @@ def main(input, output, camera_intrinsics, aruco_yaml, num_workers, slam_frame_s
             slam_idx += 1
 
     n_detections = sum(len(r["tag_dict"]) for r in results)
-    print(
-        f"Done: {len(results)} frames processed, {n_detections} tag detections total."
+    logger.info(
+        "Done: %d frames processed, %d tag detections total.",
+        len(results),
+        n_detections,
     )
 
-    pathlib.Path(output).expanduser().write_bytes(pickle.dumps(results))
+    output_path = pathlib.Path(output).expanduser()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(pickle.dumps(results))
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()

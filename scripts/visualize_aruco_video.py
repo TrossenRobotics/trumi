@@ -15,6 +15,7 @@
 """
 
 import json
+import logging
 import pathlib
 import pickle
 import sys
@@ -25,13 +26,17 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from utils.common.cv_util import (
+from trumi.utils.cv_util import (
     convert_fisheye_intrinsics_resolution,
     parse_fisheye_intrinsics,
 )
 
+logger = logging.getLogger(__name__)
+
 # Length of the 3D pose axis arrows drawn on each tag, in metres.
 AXIS_LENGTH_M = 0.03
+
+TAG_LABELS = {0: "gripper left", 1: "gripper right"}
 
 
 def _build_frame_lookup(detections: list) -> dict:
@@ -60,7 +65,7 @@ def _draw_detections(
         cv2.aruco.drawDetectedMarkers(img_bgr, corners_list, np.array(ids_list))
 
     # 3D axis endpoints in marker frame: X, Y, Z tips + origin.
-    # rvec/tvec came from solveOnP on undistorted pinhole coords, so we must
+    # rvec/tvec came from cv2.solvePnP on undistorted pinhole coords, so we must
     # project back into the fisheye image using cv2.fisheye.projectPoints.
     axis_3d = np.float32(
         [[AXIS_LENGTH_M, 0, 0], [0, AXIS_LENGTH_M, 0], [0, 0, AXIS_LENGTH_M], [0, 0, 0]]
@@ -150,18 +155,23 @@ def main(input_dir, camera_intrinsics, output_video, slam_frame_stride):
         in_stream.thread_type = "AUTO"
         n_frames = in_stream.frames
 
-        in_res = np.array([in_stream.height, in_stream.width])[::-1]
+        in_res = np.array([in_stream.width, in_stream.height])
         K = convert_fisheye_intrinsics_resolution(raw_intr, in_res)["K"]
 
         with av.open(str(output_video), mode="w") as out_container:
-            out_stream = out_container.add_stream("h264", rate=in_stream.average_rate)
+            output_fps = in_stream.average_rate / slam_frame_stride
+            out_stream = out_container.add_stream("h264", rate=output_fps)
             out_stream.width = in_stream.width
             out_stream.height = in_stream.height
             out_stream.pix_fmt = "yuv420p"
             out_stream.options = {"crf": "18"}
 
-            print(
-                f"Writing {n_frames // slam_frame_stride} frames to {output_video.name} (every {slam_frame_stride} of {n_frames} raw frames)"
+            logger.info(
+                "Writing %d frames to %s (every %d of %d raw frames)",
+                n_frames // slam_frame_stride,
+                output_video.name,
+                slam_frame_stride,
+                n_frames,
             )
             for frame_idx, frame in tqdm(
                 enumerate(in_container.decode(in_stream)),
@@ -187,21 +197,29 @@ def main(input_dir, camera_intrinsics, output_video, slam_frame_stride):
                 out_container.mux(packet)
 
     # Per-tag detection coverage stats.
-    TAG_LABELS = {0: "gripper left", 1: "gripper right"}
     report_ids = [
         tid
         for tid in sorted({tid for e in detections for tid in e["tag_dict"]})
         if tid in TAG_LABELS
     ]
-    print(f"\nDetection coverage ({len(detections)} frames total):")
-    for tid in report_ids:
-        detected = sum(1 for e in detections if tid in e["tag_dict"])
-        missing = len(detections) - detected
-        print(
-            f"  tag {tid:>3d} ({TAG_LABELS[tid]:<14}): {detected} detected, {missing} missing ({100 * missing / len(detections):.1f}% missing)"
-        )
-    print(f"\nDone: {n_drawn} tag detections drawn on {output_video}")
+    if detections:
+        logger.info("Detection coverage (%d frames total):", len(detections))
+        for tid in report_ids:
+            detected = sum(1 for e in detections if tid in e["tag_dict"])
+            missing = len(detections) - detected
+            logger.info(
+                "  tag %3d (%-14s): %d detected, %d missing (%.1f%% missing)",
+                tid,
+                TAG_LABELS[tid],
+                detected,
+                missing,
+                100 * missing / len(detections),
+            )
+    else:
+        logger.warning("No detections found in pickle file")
+    logger.info("Done: %d tag detections drawn on %s", n_drawn, output_video)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()

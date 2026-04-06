@@ -13,6 +13,7 @@ Run ArUco tag detection in batch over all demo videos in a demos directory.
 """
 
 import concurrent.futures
+import logging
 import multiprocessing
 import pathlib
 import subprocess
@@ -20,6 +21,8 @@ import sys
 
 import click
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 def runner(cmd, stdout_path, stderr_path):
@@ -33,8 +36,8 @@ def runner(cmd, stdout_path, stderr_path):
     with stdout_path.open("w") as stdout_f, stderr_path.open("w") as stderr_f:
         result = subprocess.run(cmd, stdout=stdout_f, stderr=stderr_f)
     if result.returncode != 0:
-        print(
-            f"[ERROR] detect_aruco failed for {stdout_path.parent.name}, see {stderr_path}"
+        logger.error(
+            "detect_aruco failed for %s, see %s", stdout_path.parent.name, stderr_path
         )
     return result
 
@@ -82,7 +85,7 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers, slam_frame_strid
     """
     input_dir = pathlib.Path(input_dir).resolve()
     input_video_dirs = [x.parent for x in input_dir.glob("*/raw_video.mp4")]
-    print(f"Found {len(input_video_dirs)} video dirs")
+    logger.info("Found %d video dirs", len(input_video_dirs))
 
     camera_intrinsics = pathlib.Path(camera_intrinsics).resolve()
     aruco_yaml_path = pathlib.Path(aruco_yaml).resolve()
@@ -92,11 +95,9 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers, slam_frame_strid
         raise click.ClickException(f"ArUco config not found: {aruco_yaml_path}")
 
     if num_workers is None:
-        num_workers = multiprocessing.cpu_count() // 2
+        num_workers = max(1, multiprocessing.cpu_count() // 2)
 
-    script_path = pathlib.Path(__file__).parent.parent.joinpath(
-        "scripts", "detect_aruco.py"
-    )
+    script_path = pathlib.Path(__file__).parent.parent.joinpath("detect_aruco.py")
 
     with tqdm(total=len(input_video_dirs)) as pbar:
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
@@ -106,8 +107,8 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers, slam_frame_strid
                 video_dir = video_dir.resolve()
                 pkl_path = video_dir.joinpath("tag_detection.pkl")
                 if pkl_path.is_file():
-                    print(
-                        f"tag_detection.pkl already exists, skipping {video_dir.name}"
+                    logger.info(
+                        "tag_detection.pkl already exists, skipping %s", video_dir.name
                     )
                     pbar.update(1)
                     continue
@@ -154,10 +155,13 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers, slam_frame_strid
         if isinstance(r, subprocess.CompletedProcess) and r.returncode == 0
     )
     n_fail = len(results) - n_ok
-    print(
-        f"\nDone: {n_ok} succeeded, {n_fail} failed  (logs: detect_aruco_stdout.txt / detect_aruco_stderr.txt)"
+    logger.info(
+        "Done: %d succeeded, %d failed (logs: detect_aruco_stdout.txt / detect_aruco_stderr.txt)",
+        n_ok,
+        n_fail,
     )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()
