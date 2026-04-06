@@ -13,12 +13,15 @@ Extract GoPro IMU telemetry from raw_video.mp4 files and save as imu_data.json.
 """
 
 import concurrent.futures
+import logging
 import multiprocessing
 import pathlib
 
 import click
 from py_gpmf_parser.gopro_telemetry_extractor import GoProTelemetryExtractor
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 # GPMF telemetry streams to extract
 GPMF_STREAMS = [
@@ -94,15 +97,15 @@ def main(num_workers, session_dir):
 
         input_dir = session.joinpath("demos")
         if not input_dir.is_dir():
-            print(f"Warning: No demos/ directory found in '{session}', skipping.")
+            logger.warning(f"No demos/ directory found in '{session}', skipping.")
             continue
 
         input_video_dirs = [x.parent for x in input_dir.glob("*/raw_video.mp4")]
         if not input_video_dirs:
-            print(f"Warning: No raw_video.mp4 files found in '{input_dir}', skipping.")
+            logger.warning(f"No raw_video.mp4 files found in '{input_dir}', skipping.")
             continue
 
-        print(f"Found {len(input_video_dirs)} video dirs")
+        logger.info(f"Found {len(input_video_dirs)} video dirs")
 
         with tqdm(total=len(input_video_dirs)) as pbar:
             # one video per process for true parallelism (bypasses GIL)
@@ -116,7 +119,7 @@ def main(num_workers, session_dir):
                     json_path = video_dir.joinpath("imu_data.json")
 
                     if json_path.is_file():
-                        print(
+                        logger.debug(
                             f"imu_data.json already exists, skipping {video_dir.name}"
                         )
                         pbar.update(1)
@@ -133,16 +136,17 @@ def main(num_workers, session_dir):
                     try:
                         future.result()
                     except Exception as exc:
-                        print(f"Error: Extraction failed for {video_path}: {exc}")
+                        logger.error(f"Extraction failed for {video_path}: {exc}")
                         failed_extractions.append((video_path, exc))
                     pbar.update(1)
 
     if failed_extractions:
-        print(f"Error: {len(failed_extractions)} extraction(s) failed.")
+        logger.error(f"{len(failed_extractions)} extraction(s) failed.")
         raise SystemExit(1)
 
-    print("Done, IMU extraction complete.")
+    logger.info("Done, IMU extraction complete.")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()
