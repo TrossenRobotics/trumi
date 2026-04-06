@@ -57,15 +57,17 @@ def main(session_dir):
 
         # create raw_videos dir if doesn't exist
         if not input_dir.is_dir():
+            mp4_paths = [p for p in session.glob("*.[mM][pP]4") if p.is_file()]
+            if not mp4_paths:
+                logger.info(
+                    f"No MP4 files found directly in '{session}'. "
+                    "Already processed or no videos to process."
+                )
+                continue
             input_dir.mkdir()
             logger.info(
                 f"{input_dir.name} subdir doesn't exist! Creating one and moving all MP4 videos inside."
             )
-            mp4_paths = list(session.glob(MP4_GLOB))
-            if not mp4_paths:
-                raise click.ClickException(
-                    f"No MP4 files found in '{session}'. Cannot create raw_videos/."
-                )
             for mp4_path in mp4_paths:
                 out_path = input_dir.joinpath(mp4_path.name)
                 shutil.move(mp4_path, out_path)
