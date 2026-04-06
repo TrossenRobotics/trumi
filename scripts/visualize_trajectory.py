@@ -57,8 +57,10 @@ def main(traj_file, frames):
     """
     df = load_trajectory(pathlib.Path(traj_file))
 
-    tracked = df[~df["is_lost"]]
-    lost = df[df["is_lost"]]
+    # Coerce is_lost to boolean (CSV may load it as 0/1 int)
+    is_lost = df["is_lost"].astype(bool)
+    tracked = df[~is_lost]
+    lost = df[is_lost]
 
     pct_tracked = 100.0 * len(tracked) / len(df) if len(df) else 0.0
     print(

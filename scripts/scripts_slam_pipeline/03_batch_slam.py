@@ -14,6 +14,7 @@ pre-built map atlas and generate camera_trajectory.csv file.
 """
 
 import concurrent.futures
+import logging
 import multiprocessing
 import pathlib
 import subprocess
@@ -24,7 +25,9 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from utils.common.cv_util import draw_predefined_mask
+from trumi.utils.cv_util import draw_predefined_mask
+
+logger = logging.getLogger(__name__)
 
 # GoPro 2.7k resolution used for per-video SLAM masks
 GOPRO_2_7K_H, GOPRO_2_7K_W = 2028, 2704
@@ -73,9 +76,9 @@ def runner(cmd, cwd, stdout_path, stderr_path, timeout, **kwargs):
 @click.option(
     "-n",
     "--num_workers",
-    type=int,
+    type=click.IntRange(min=1),
     default=None,
-    help="Parallel Docker workers. Defaults to cpu_count // 2.",
+    help="Parallel Docker workers. Defaults to max(1, cpu_count // 2).",
 )
 @click.option(
     "-ml",
@@ -91,8 +94,21 @@ def runner(cmd, cwd, stdout_path, stderr_path, timeout, **kwargs):
     default=16,
     help="Per-video timeout = video_duration_s * timeout_multiple. Increase for slow machines.",
 )
+@click.option(
+    "-nm",
+    "--no_mask",
+    is_flag=True,
+    default=False,
+    help="Whether to mask out finger and mirrors. Set if map is created with bare GoPro not on gripper.",
+)
 def main(
-    input_dir, map_path, docker_image, num_workers, max_lost_frames, timeout_multiple
+    input_dir,
+    map_path,
+    docker_image,
+    num_workers,
+    max_lost_frames,
+    timeout_multiple,
+    no_mask,
 ):
     """Run ORB-SLAM3 localization in batch over all demo videos under input_dir to generate camera_trajectory.csv files.
 
@@ -106,11 +122,12 @@ def main(
     :param num_workers: Parallel Docker workers. Defaults to cpu_count // 2.
     :param max_lost_frames: Terminate SLAM if tracking is lost for this many consecutive frames.
     :param timeout_multiple: Per-video timeout = video_duration_s * timeout_multiple.
+    :param no_mask: If True, skip mask generation and run SLAM on the raw video.
     """
     input_dir = pathlib.Path(input_dir).resolve()
     input_video_dirs = [x.parent for x in input_dir.glob("demo*/raw_video.mp4")]
     input_video_dirs += [x.parent for x in input_dir.glob("map*/raw_video.mp4")]
-    print(f"Found {len(input_video_dirs)} video dirs")
+    logger.info("Found %d video dirs", len(input_video_dirs))
 
     if map_path is None:
         map_path = input_dir.joinpath("mapping", "map_atlas.osa")
@@ -120,7 +137,7 @@ def main(
         raise click.ClickException(f"Map atlas not found: {map_path}")
 
     if num_workers is None:
-        num_workers = multiprocessing.cpu_count() // 2
+        num_workers = max(1, multiprocessing.cpu_count() // 2)
 
     with tqdm(total=len(input_video_dirs)) as pbar:
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
@@ -129,9 +146,17 @@ def main(
             for video_dir in input_video_dirs:
                 video_dir = video_dir.resolve()
                 if video_dir.joinpath("camera_trajectory.csv").is_file():
-                    print(
-                        f"camera_trajectory.csv already exists, skipping {video_dir.name}"
+                    logger.info(
+                        "camera_trajectory.csv already exists, skipping %s",
+                        video_dir.name,
                     )
+                    pbar.update(1)
+                    continue
+
+                # Validate imu_data.json exists before submitting job
+                imu_json_path = video_dir.joinpath("imu_data.json")
+                if not imu_json_path.is_file():
+                    logger.warning("imu_data.json missing, skipping %s", video_dir.name)
                     pbar.update(1)
                     continue
 
@@ -151,11 +176,12 @@ def main(
                     duration_sec = float(video.duration * video.time_base)
                 timeout = duration_sec * timeout_multiple
 
-                slam_mask = np.zeros((GOPRO_2_7K_H, GOPRO_2_7K_W), dtype=np.uint8)
-                slam_mask = draw_predefined_mask(
-                    slam_mask, color=255, mirror=True, gripper=False, finger=True
-                )
-                cv2.imwrite(str(mask_write_path.absolute()), slam_mask)
+                if not no_mask:
+                    slam_mask = np.zeros((GOPRO_2_7K_H, GOPRO_2_7K_W), dtype=np.uint8)
+                    slam_mask = draw_predefined_mask(
+                        slam_mask, color=255, mirror=True, gripper=False, finger=True
+                    )
+                    cv2.imwrite(str(mask_write_path.absolute()), slam_mask)
 
                 map_mount_source = map_path
                 map_mount_target = pathlib.Path("/map").joinpath(map_mount_source.name)
@@ -183,11 +209,11 @@ def main(
                     str(csv_path),
                     "--load_map",
                     str(map_mount_target),
-                    "--mask_img",
-                    str(mask_path),
                     "--max_lost_frames",
                     str(max_lost_frames),
                 ]
+                if not no_mask:
+                    cmd.extend(["--mask_img", str(mask_path)])
 
                 stdout_path = video_dir.joinpath("slam_stdout.txt")
                 stderr_path = video_dir.joinpath("slam_stderr.txt")
@@ -216,10 +242,14 @@ def main(
     )
     n_timeout = sum(1 for r in results if isinstance(r, subprocess.TimeoutExpired))
     n_fail = len(results) - n_ok - n_timeout
-    print(
-        f"\nDone: {n_ok} succeeded, {n_fail} failed, {n_timeout} timed out  (logs: slam_stdout.txt / slam_stderr.txt)"
+    logger.info(
+        "Done: %d succeeded, %d failed, %d timed out (logs: slam_stdout.txt / slam_stderr.txt)",
+        n_ok,
+        n_fail,
+        n_timeout,
     )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()
