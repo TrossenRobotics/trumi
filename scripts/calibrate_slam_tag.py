@@ -16,6 +16,7 @@
 """
 
 import json
+import logging
 import pathlib
 import pickle
 
@@ -25,7 +26,18 @@ import pandas as pd
 from scipy.spatial.transform import Rotation
 from skfda.exploratory.stats import geometric_median
 
-from utils.common.pose_util import pose_to_mat
+from trumi.utils.cv_util import GOPRO_2_7K_RESOLUTION
+from trumi.utils.pose_util import pose_to_mat
+
+logger = logging.getLogger(__name__)
+
+# Min/max tag distance from camera (metres).
+# Too close: ArUco pose estimation degrades. Too far: detection is noisy.
+MIN_TAG_DIST_M = 0.3
+MAX_TAG_DIST_M = 2.0
+# Max allowed distance from image center as a fraction of half-height.
+# Beyond this, fisheye distortion degrades ArUco pose accuracy.
+DEFAULT_PERIPHERY_THRESHOLD = 0.6
 
 
 @click.command(help="Calibrate the mapping ArUco tag pose in the SLAM map frame.")
@@ -59,7 +71,17 @@ from utils.common.pose_util import pose_to_mat
     default=False,
     help="Only use keyframe poses from the trajectory.",
 )
-def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
+@click.option(
+    "-p",
+    "--periphery_threshold",
+    type=float,
+    default=DEFAULT_PERIPHERY_THRESHOLD,
+    show_default=True,
+    help="Max distance from image center (fraction of half-height) for tag detections.",
+)
+def main(
+    tag_detection, csv_trajectory, output, tag_id, keyframe_only, periphery_threshold
+):
     """Calibrate the mapping ArUco tag pose in the SLAM map coordinate frame.
 
     :param tag_detection: Path to tag_detection.pkl from the mapping video.
@@ -70,6 +92,8 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
     :param output: Output path for tx_slam_tag.json.
     :param tag_id: ArUco tag ID used as the mapping landmark.
     :param keyframe_only: If set, restrict to keyframe poses only.
+    :param periphery_threshold: Max distance from image center (fraction of half-height)
+        beyond which detections are discarded due to fisheye distortion.
     """
     df = pd.read_csv(csv_trajectory)
     with open(tag_detection, "rb") as f:
@@ -90,32 +114,44 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
 
     # Match each camera pose timestamp to the nearest detection frame by time.
     video_timestamps = np.array([x["time"] for x in tag_detection_results])
-    tum_video_idxs = [
-        np.argmin(np.abs(video_timestamps - t)) for t in cam_pose_timestamps
-    ]
+    insert_idxs = np.searchsorted(video_timestamps, cam_pose_timestamps, side="left")
+    prev_idxs = np.clip(insert_idxs - 1, 0, len(video_timestamps) - 1)
+    next_idxs = np.clip(insert_idxs, 0, len(video_timestamps) - 1)
+    prev_diff = np.abs(video_timestamps[prev_idxs] - cam_pose_timestamps)
+    next_diff = np.abs(video_timestamps[next_idxs] - cam_pose_timestamps)
+    video_idxs = np.where(next_diff < prev_diff, next_idxs, prev_idxs)
 
     all_tx_slam_tag = []
-    for tum_idx, video_idx in enumerate(tum_video_idxs):
+    for cam_idx, video_idx in enumerate(video_idxs):
         tag_dict = tag_detection_results[video_idx]["tag_dict"]
         if tag_id not in tag_dict:
             continue
 
         tag = tag_dict[tag_id]
         tx_cam_tag = pose_to_mat(np.concatenate([tag["tvec"], tag["rvec"]]))
-        tx_slam_cam = cam_pose[tum_idx]
+        tx_slam_cam = cam_pose[cam_idx]
 
         # Discard detections where the tag is too close or too far from the camera.
         dist_to_cam = np.linalg.norm(tx_cam_tag[:3, 3])
-        if dist_to_cam < 0.3 or dist_to_cam > 2:
+        if dist_to_cam < MIN_TAG_DIST_M or dist_to_cam > MAX_TAG_DIST_M:
             continue
 
         # Discard detections near the image periphery where fisheye distortion is high.
         tag_center_pix = tag["corners"].mean(axis=0)
-        img_center = np.array([2704, 2028], dtype=np.float32) / 2
-        if np.linalg.norm(tag_center_pix - img_center) / img_center[1] > 0.6:
+        img_center = np.array(GOPRO_2_7K_RESOLUTION[::-1], dtype=np.float32) / 2
+        if (
+            np.linalg.norm(tag_center_pix - img_center) / img_center[1]
+            > periphery_threshold
+        ):
             continue
 
         all_tx_slam_tag.append(tx_slam_cam @ tx_cam_tag)
+
+    if not all_tx_slam_tag:
+        raise click.ClickException(
+            f"Tag ID {tag_id} was not observed in any valid camera pose after filtering. "
+            "Check that the correct tag_id is used and the tag is visible in the mapping video."
+        )
 
     all_tx_slam_tag = np.array(all_tx_slam_tag)
 
@@ -133,13 +169,14 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
     )
     tx_slam_tag = all_tx_slam_tag[inlier_mask][nn_idx]
 
-    print(f"Tag position std (cm, within 90th-pct inliers): {std * 100}")
+    logger.info(f"Tag position std (cm, within 90th-pct inliers): {std * 100}")
 
     pathlib.Path(output).write_text(
         json.dumps({"tx_slam_tag": tx_slam_tag.tolist()}, indent=2)
     )
-    print(f"Saved result to {output}")
+    logger.info(f"Saved result to {output}")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()

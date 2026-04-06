@@ -15,19 +15,22 @@
 
 import collections
 import json
+import logging
 import pathlib
 import pickle
 
 import click
 import numpy as np
 
-from utils.common.cv_util import get_gripper_width
+from trumi.utils.cv_util import get_gripper_width
+
+logger = logging.getLogger(__name__)
 
 
 @click.command(help="Calibrate gripper min/max opening width from a calibration video.")
 @click.option(
     "-i",
-    "--input",
+    "--input_path",
     required=True,
     type=click.Path(exists=True),
     help="tag_detection.pkl from the gripper calibration video.",
@@ -39,7 +42,7 @@ from utils.common.cv_util import get_gripper_width
     type=float,
     default=0.8,
     show_default=True,
-    help="Minimum joint detection rate to accept a gripper.",
+    help="Minimum per-finger detection rate to accept a gripper.",
 )
 @click.option(
     "-nz",
@@ -49,15 +52,15 @@ from utils.common.cv_util import get_gripper_width
     show_default=True,
     help="Expected depth (m) of the finger tags when computing width.",
 )
-def main(input, output, tag_det_threshold, nominal_z):
+def main(input_path, output, tag_det_threshold, nominal_z):
     """Calibrate gripper min/max opening width.
 
-    :param input: Path to tag_detection.pkl from the gripper calibration video.
+    :param input_path: Path to tag_detection.pkl from the gripper calibration video.
     :param output: Output path for gripper_range.json.
-    :param tag_det_threshold: Minimum joint detection rate; exits with error if not met.
+    :param tag_det_threshold: Minimum per-finger detection rate; exits with error if not met.
     :param nominal_z: Expected tag depth in metres used by get_gripper_width.
     """
-    with open(input, "rb") as f:
+    with open(input_path, "rb") as f:
         tag_detection_results = pickle.load(f)
 
     n_frames = len(tag_detection_results)
@@ -66,6 +69,11 @@ def main(input, output, tag_det_threshold, nominal_z):
         for key in frame["tag_dict"]:
             tag_counts[key] += 1
     tag_stats: dict = {k: v / n_frames for k, v in tag_counts.items()}
+
+    if not tag_stats:
+        raise click.ClickException(
+            "No ArUco tags detected in any frame of tag_detection.pkl."
+        )
 
     # Each gripper occupies 6 consecutive tag IDs; left finger = id*6, right = id*6+1.
     tag_per_gripper = 6
@@ -82,8 +90,8 @@ def main(input, output, tag_det_threshold, nominal_z):
         raise click.ClickException("No grippers detected in tag_detection.pkl.")
 
     gripper_id, gripper_prob = max(gripper_prob_map.items(), key=lambda x: x[1])
-    print(
-        f"Detected gripper id: {gripper_id} (joint detection rate: {gripper_prob:.3f})"
+    logger.info(
+        f"Detected gripper id: {gripper_id} (min per-finger detection rate: {gripper_prob:.3f})"
     )
     if gripper_prob < tag_det_threshold:
         raise click.ClickException(
@@ -108,8 +116,9 @@ def main(input, output, tag_det_threshold, nominal_z):
         "min_width": float(np.nanmin(gripper_widths)),
     }
     pathlib.Path(output).write_text(json.dumps(result, indent=2))
-    print(f"Saved gripper range to {output}")
+    logger.info(f"Saved gripper range to {output}")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     main()
