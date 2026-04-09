@@ -96,7 +96,7 @@ def main(session_dir):
             serial_start_dict = dict()
             serial_path_dict = dict()
             mp4_paths = [
-                p for p in input_dir.glob(MP4_GLOB) if not p.name.startswith("map")
+                p for p in input_dir.glob(MP4_GLOB) if not p.name.startswith("mapping")
             ]
             if not mp4_paths:
                 raise click.ClickException(
