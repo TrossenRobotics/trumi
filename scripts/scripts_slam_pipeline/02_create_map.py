@@ -5,7 +5,7 @@ Create an ORB-SLAM3 map atlas from a GoPro mapping video using a Docker-based SL
     1. Validate that raw_video.mp4 and imu_data.json exist in input_dir.
     2. Generate a predefined SLAM mask (mirror + finger regions).
     3. Run the ORB-SLAM3 Docker container with the video, IMU data, and optional mask.
-       ORB-SLAM3 automatically subsamples frames so IMU samples per frame >= 3.
+       ORB-SLAM3 Docker container automatically subsamples frames so IMU samples per frame >= 3.
        (eg. every 2nd frame at 120 fps so running SLAM at 60 fps.)
     4. Output map atlas (*.osa) and camera trajectory CSV.
 
@@ -25,6 +25,8 @@ from trumi.utils.cv_util import GOPRO_2_7K_RESOLUTION, draw_predefined_mask
 
 logger = logging.getLogger(__name__)
 
+# TODO(abhichothani42): Add Camera setting.yaml file for difference resolution
+# and different camera models, make it configurable
 # ORB-SLAM3 camera/IMU settings file path (inside the Docker container)
 SLAM_SETTING = (
     "/ORB_SLAM3/Examples/Monocular-Inertial/gopro13_maxlens_fisheye_setting_v1_720.yaml"

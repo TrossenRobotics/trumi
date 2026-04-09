@@ -218,7 +218,7 @@ def detect_localize_aruco_tags(
             dtype=np.float32,
         )
         img_pts = undistorted.reshape(4, 1, 2).astype(np.float32)
-        ok, rvec, tvec = cv2.solvePnP(
+        ok, rvec, tvec = cv2.solveOnP(
             obj_pts, img_pts, K, np.zeros((4, 1)), flags=cv2.SOLVEPNP_IPPE_SQUARE
         )
         if not ok:
@@ -516,7 +516,8 @@ def get_image_transform(
         c_slice = slice(None, None, -1)
 
     def transform(img: np.ndarray):
-        assert img.shape == ((ih, iw, 3))
+        if img.shape != (ih, iw, 3):
+            raise ValueError(f"Expected image shape {(ih, iw, 3)}, got {img.shape}")
         # crop
         img = img[h_slice, w_slice, c_slice]
         # resize
