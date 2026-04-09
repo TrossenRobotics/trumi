@@ -218,7 +218,7 @@ def detect_localize_aruco_tags(
             dtype=np.float32,
         )
         img_pts = undistorted.reshape(4, 1, 2).astype(np.float32)
-        ok, rvec, tvec = cv2.solveOnP(
+        ok, rvec, tvec = cv2.solvePnP(
             obj_pts, img_pts, K, np.zeros((4, 1)), flags=cv2.SOLVEPNP_IPPE_SQUARE
         )
         if not ok:
