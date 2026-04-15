@@ -6,7 +6,7 @@
        to produce gripper_range.json.
 
 :Usage:
-    uv run python scripts_slam_pipeline/05_run_calibrations.py -i <session_dir>
+    uv run python scripts/scripts_slam_pipeline/05_run_calibrations.py -i <session_dir>
 """
 
 import logging

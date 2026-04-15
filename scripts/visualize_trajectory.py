@@ -11,6 +11,7 @@
     uv run python scripts/visualize_trajectory.py -t path/to/camera_trajectory.csv --frames
 """
 
+import logging
 import pathlib
 
 import click
@@ -19,6 +20,8 @@ import numpy as np
 import pandas as pd
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from scipy.spatial.transform import Rotation as R
+
+logger = logging.getLogger(__name__)
 
 # Draw an orientation frame every N tracked poses to keep the plot readable.
 FRAME_STEP = 5
@@ -55,6 +58,7 @@ def main(traj_file, frames):
     :param traj_file: Path to camera_trajectory.csv produced by ORB-SLAM3.
     :param frames: If set, draw RGB orientation axes at every FRAME_STEP pose.
     """
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     df = load_trajectory(pathlib.Path(traj_file))
 
     # Coerce is_lost to boolean (CSV may load it as 0/1 int)
@@ -63,8 +67,12 @@ def main(traj_file, frames):
     lost = df[is_lost]
 
     pct_tracked = 100.0 * len(tracked) / len(df) if len(df) else 0.0
-    print(
-        f"Frames : {len(df)} total | {len(tracked)} tracked ({pct_tracked:.1f}%) | {len(lost)} lost"
+    logger.info(
+        "Frames : %d total | %d tracked (%.1f%%) | %d lost",
+        len(df),
+        len(tracked),
+        pct_tracked,
+        len(lost),
     )
 
     fig = plt.figure(figsize=(10, 8))

@@ -8,7 +8,7 @@ Run ArUco tag detection in batch over all demo videos in a demos directory.
     4. Output per-video tag_detection.pkl files.
 
 :Usage:
-    uv run python scripts_slam_pipeline/04_detect_aruco.py --input_dir <session_dir/demos/> \\
+    uv run python scripts/scripts_slam_pipeline/04_detect_aruco.py --input_dir <session_dir/demos/> \
         --camera_intrinsics <intrinsics.json> --aruco_yaml <config.yaml>
 """
 
