@@ -191,13 +191,19 @@ def main(
             if n_grippers is None:
                 n_grippers = len(grippers)
             else:
-                assert n_grippers == len(grippers)
+                if n_grippers != len(grippers):
+                    raise click.ClickException(
+                        f"Inconsistent gripper count: expected {n_grippers}, got {len(grippers)}."
+                    )
 
             cameras = plan_episode["cameras"]
             if n_cameras is None:
                 n_cameras = len(cameras)
             else:
-                assert n_cameras == len(cameras)
+                if n_cameras != len(cameras):
+                    raise click.ClickException(
+                        f"Inconsistent camera count: expected {n_cameras}, got {len(cameras)}."
+                    )
 
             episode_data = dict()
             for gripper_id, gripper in enumerate(grippers):
@@ -228,7 +234,8 @@ def main(
             for cam_id, camera in enumerate(cameras):
                 video_path_rel = camera["video_path"]
                 video_path = demos_path.joinpath(video_path_rel).absolute()
-                assert video_path.is_file()
+                if not video_path.is_file():
+                    raise click.ClickException(f"Video file not found: {video_path}")
 
                 video_start, video_end = camera["video_start_end"]
                 if n_frames is None:
@@ -236,7 +243,12 @@ def main(
                     # to get slam-fps frame count matching the lowdim data
                     n_frames = (video_end - video_start) // slam_frame_stride
                 else:
-                    assert n_frames == (video_end - video_start) // slam_frame_stride
+                    expected = (video_end - video_start) // slam_frame_stride
+                    if n_frames != expected:
+                        raise click.ClickException(
+                            f"Frame count mismatch for {video_path}: "
+                            f"expected {n_frames}, got {expected}."
+                        )
 
                 videos_dict[str(video_path)].append(
                     {
@@ -253,6 +265,11 @@ def main(
 
     logger.info("%d videos used in total!", len(all_videos))
 
+    if not vid_args:
+        raise click.ClickException(
+            "No valid episodes found. Check that input directories contain dataset_plan.pkl."
+        )
+
     # get image size
     with av.open(vid_args[0][0]) as container:
         in_stream = container.streams.video[0]
@@ -260,20 +277,29 @@ def main(
 
     # dump images
     img_compressor = JpegXl(level=compression_level, numthreads=1)
+    # out_res is (W, H); images are stored in NumPy order (H, W, C)
+    out_img_shape = (out_res[1], out_res[0])
     for cam_id in range(n_cameras):
         name = f"camera{cam_id}_rgb"
         _ = out_replay_buffer.data.require_dataset(
             name=name,
-            # (total_frames, out_res, 3)
-            shape=(out_replay_buffer["robot0_eef_pos"].shape[0],) + out_res + (3,),
-            # (1, out_res, 3)
-            chunks=(1,) + out_res + (3,),
+            # (total_frames, H, W, 3)
+            shape=(out_replay_buffer["robot0_eef_pos"].shape[0],)
+            + out_img_shape
+            + (3,),
+            # (1, H, W, 3)
+            chunks=(1,) + out_img_shape + (3,),
             compressor=img_compressor,
             dtype=np.uint8,
         )
 
     def video_to_zarr(replay_buffer, mp4_path, tasks):
         pkl_path = pathlib.Path(mp4_path).parent / "tag_detection.pkl"
+        if not pkl_path.is_file():
+            raise click.ClickException(
+                f"tag_detection.pkl not found for video {mp4_path}. "
+                f"Expected at: {pkl_path}"
+            )
         tag_detection_results = pickle.loads(pkl_path.read_bytes())
         resize_tf = get_image_transform(in_res=(iw, ih), out_res=out_res)
         tasks = sorted(tasks, key=lambda x: x["frame_start"])
@@ -282,7 +308,11 @@ def main(
             if camera_idx is None:
                 camera_idx = task["camera_idx"]
             else:
-                assert camera_idx == task["camera_idx"]
+                if camera_idx != task["camera_idx"]:
+                    raise RuntimeError(
+                        f"Tasks for the same video have different camera indices: "
+                        f"{camera_idx} vs {task['camera_idx']}."
+                    )
         name = f"camera{camera_idx}_rgb"
         img_array = replay_buffer.data[name]
 

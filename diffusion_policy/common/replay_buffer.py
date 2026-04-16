@@ -219,8 +219,8 @@ class ReplayBuffer:
         src_store,
         store=None,
         keys=None,
-        chunks: Dict[str, tuple] = dict(),
-        compressors: Union[dict, str, numcodecs.abc.Codec] = dict(),
+        chunks: Dict[str, tuple] = None,
+        compressors: Union[dict, str, numcodecs.abc.Codec] = None,
         if_exists="replace",
         **kwargs,
     ):
@@ -235,6 +235,10 @@ class ReplayBuffer:
         :param if_exists: Behaviour when a destination array already exists.
         :return: :class:`ReplayBuffer` backed by the destination store.
         """
+        if chunks is None:
+            chunks = {}
+        if compressors is None:
+            compressors = {}
         src_root = zarr.group(src_store)
         root = None
         if store is None:
@@ -303,8 +307,8 @@ class ReplayBuffer:
         backend=None,
         store=None,
         keys=None,
-        chunks: Dict[str, tuple] = dict(),
-        compressors: Union[dict, str, numcodecs.abc.Codec] = dict(),
+        chunks: Dict[str, tuple] = None,
+        compressors: Union[dict, str, numcodecs.abc.Codec] = None,
         if_exists="replace",
         **kwargs,
     ):
@@ -319,6 +323,10 @@ class ReplayBuffer:
         :param if_exists: Behaviour when a destination array already exists.
         :return: :class:`ReplayBuffer` loaded into memory.
         """
+        if chunks is None:
+            chunks = {}
+        if compressors is None:
+            compressors = {}
         if backend == "numpy":
             logger.warning("backend argument is deprecated!")
             store = None
@@ -337,8 +345,8 @@ class ReplayBuffer:
     def save_to_store(
         self,
         store,
-        chunks: Optional[Dict[str, tuple]] = dict(),
-        compressors: Union[str, numcodecs.abc.Codec, dict] = dict(),
+        chunks: Optional[Dict[str, tuple]] = None,
+        compressors: Union[str, numcodecs.abc.Codec, dict] = None,
         if_exists="replace",
         **kwargs,
     ):
@@ -350,6 +358,10 @@ class ReplayBuffer:
         :param if_exists: Behaviour when a destination array already exists.
         :return: The destination store.
         """
+        if chunks is None:
+            chunks = {}
+        if compressors is None:
+            compressors = {}
         root = zarr.group(store)
         if self.backend == "zarr":
             # recompression free copy
@@ -404,8 +416,8 @@ class ReplayBuffer:
     def save_to_path(
         self,
         zarr_path,
-        chunks: Optional[Dict[str, tuple]] = dict(),
-        compressors: Union[str, numcodecs.abc.Codec, dict] = dict(),
+        chunks: Optional[Dict[str, tuple]] = None,
+        compressors: Union[str, numcodecs.abc.Codec, dict] = None,
         if_exists="replace",
         **kwargs,
     ):
@@ -417,6 +429,10 @@ class ReplayBuffer:
         :param if_exists: Behaviour when a destination array already exists.
         :return: The destination store.
         """
+        if chunks is None:
+            chunks = {}
+        if compressors is None:
+            compressors = {}
         store = zarr.DirectoryStore(os.path.expanduser(zarr_path))
         return self.save_to_store(
             store, chunks=chunks, compressors=compressors, if_exists=if_exists, **kwargs
@@ -547,10 +563,12 @@ class ReplayBuffer:
         :return: Integer array of shape ``(n_steps,)`` where each entry is the
             episode index that step belongs to.
         """
+        if len(self.episode_ends) == 0:
+            return np.zeros((0,), dtype=np.int64)
+
         import numba
 
-        numba.jit(nopython=True)
-
+        @numba.jit(nopython=True)
         def _get_episode_idxs(episode_ends):
             result = np.zeros((episode_ends[-1],), dtype=np.int64)
             for i in range(len(episode_ends)):
@@ -620,8 +638,8 @@ class ReplayBuffer:
     def add_episode(
         self,
         data: Dict[str, np.ndarray],
-        chunks: Optional[Dict[str, tuple]] = dict(),
-        compressors: Union[str, numcodecs.abc.Codec, dict] = dict(),
+        chunks: Optional[Dict[str, tuple]] = None,
+        compressors: Union[str, numcodecs.abc.Codec, dict] = None,
     ):
         """Append one episode to the buffer.
 
@@ -632,6 +650,10 @@ class ReplayBuffer:
         :raises ValueError: If data is empty, any array has fewer than 1 dimension,
             or arrays have inconsistent first-dimension lengths.
         """
+        if chunks is None:
+            chunks = {}
+        if compressors is None:
+            compressors = {}
         if len(data) == 0:
             raise ValueError("data must contain at least one array.")
         is_zarr = self.backend == "zarr"

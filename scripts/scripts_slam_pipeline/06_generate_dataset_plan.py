@@ -359,7 +359,10 @@ def main(
         else:
             on_videos.remove(event["vid_idx"])
             on_cameras.remove(event["camera_serial"])
-        assert len(on_videos) == len(on_cameras)
+        if len(on_videos) != len(on_cameras):
+            raise RuntimeError(
+                f"on_videos/on_cameras length mismatch: {len(on_videos)} vs {len(on_cameras)}"
+            )
 
         if len(on_cameras) == n_cameras:
             # start demo episode where all cameras are recording
@@ -367,7 +370,10 @@ def main(
         elif t_demo_start is not None:
             # demo already started, but one camera stopped
             # stopping episode
-            assert not event["is_start"]
+            if event["is_start"]:
+                raise RuntimeError(
+                    f"Unexpected start event while demo is running for camera {event['camera_serial']}"
+                )
 
             t_start = t_demo_start
             t_end = event["t"]
@@ -419,6 +425,10 @@ def main(
         # classify gripper by tag
         # tag 0, 1 are reserved for gripper 0
         # tag 6, 7 are reserved for gripper 1
+        if n_frames == 0 or len(tag_stats) == 0:
+            cam_serial_gripper_ids_map[row["camera_serial"]].append(-1)
+            vid_idx_gripper_hardware_id_map[vid_idx] = -1
+            continue
         max_tag_id = np.max(list(tag_stats.keys()))
         tag_per_gripper = 6
         max_gripper_id = max_tag_id // tag_per_gripper
@@ -693,6 +703,11 @@ def main(
             if video_start_frame < 0:
                 video_n_frames += video_start_frame // slam_frame_stride
                 video_start_frame = 0
+            # round up to slam_frame_stride boundary so SLAM/ArUco indices stay in sync with raw frames
+            if video_start_frame % slam_frame_stride != 0:
+                video_start_frame += slam_frame_stride - (
+                    video_start_frame % slam_frame_stride
+                )
             slam_start_frame = video_start_frame // slam_frame_stride
             cam_start_frame_idxs.append(video_start_frame)
             cam_slam_frame_idxs.append(slam_start_frame)
@@ -755,7 +770,9 @@ def main(
                 continue
 
             # load camera pose
-            df.loc[df["is_lost"], "q_w"] = 1
+            df = df.copy()
+            df.loc[df["is_lost"], ["q_x", "q_y", "q_z"]] = 0.0
+            df.loc[df["is_lost"], "q_w"] = 1.0
             cam_pos = df[["x", "y", "z"]].to_numpy()
             cam_rot_quat_xyzw = df[["q_x", "q_y", "q_z", "q_w"]].to_numpy()
             cam_rot = Rotation.from_quat(cam_rot_quat_xyzw)
@@ -824,6 +841,13 @@ def main(
                 if width is not None:
                     gripper_timestamps.append(td["time"])
                     gripper_widths.append(gripper_cal_interp(width))
+            if len(gripper_widths) < 2:
+                logger.warning(
+                    "Skipping %s: fewer than 2 gripper tag detections, cannot interpolate.",
+                    video_dir.name,
+                )
+                dropped_camera_count[row["camera_serial"]] += 1
+                continue
             gripper_interp = get_interp1d(gripper_timestamps, gripper_widths)
 
             gripper_det_ratio = len(gripper_widths) / len(tag_detection_results)
@@ -841,15 +865,18 @@ def main(
             pose_tag_tcp = mat_to_pose(tx_tag_tcp)
 
             # output value
-            assert len(pose_tag_tcp) == n_frames, (
-                f"pose length {len(pose_tag_tcp)} != n_frames {n_frames} in {video_dir.name}"
-            )
-            assert len(this_gripper_widths) == n_frames, (
-                f"gripper_width length {len(this_gripper_widths)} != n_frames {n_frames} in {video_dir.name}"
-            )
-            assert len(is_step_valid) == n_frames, (
-                f"is_step_valid length {len(is_step_valid)} != n_frames {n_frames} in {video_dir.name}"
-            )
+            if len(pose_tag_tcp) != n_frames:
+                raise RuntimeError(
+                    f"pose length {len(pose_tag_tcp)} != n_frames {n_frames} in {video_dir.name}"
+                )
+            if len(this_gripper_widths) != n_frames:
+                raise RuntimeError(
+                    f"gripper_width length {len(this_gripper_widths)} != n_frames {n_frames} in {video_dir.name}"
+                )
+            if len(is_step_valid) != n_frames:
+                raise RuntimeError(
+                    f"is_step_valid length {len(is_step_valid)} != n_frames {n_frames} in {video_dir.name}"
+                )
             all_cam_poses.append(pose_tag_tcp)
             all_gripper_widths.append(this_gripper_widths)
             all_is_valid.append(is_step_valid)

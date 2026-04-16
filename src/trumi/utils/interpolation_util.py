@@ -9,7 +9,10 @@ def get_interp1d(t, x):
     :param t: 1-D array of sample times.
     :param x: Array of values with shape (N, ...) corresponding to t.
     :return: scipy interp1d interpolator.
+    :raises ValueError: If fewer than 2 samples are provided.
     """
+    if len(t) < 2:
+        raise ValueError(f"get_interp1d requires at least 2 samples, got {len(t)}.")
     gripper_interp = si.interp1d(
         t, x, axis=0, bounds_error=False, fill_value=(x[0], x[-1])
     )
