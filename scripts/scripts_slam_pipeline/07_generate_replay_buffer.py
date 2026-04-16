@@ -402,6 +402,8 @@ def main(
                     completed, futures = concurrent.futures.wait(
                         futures, return_when=concurrent.futures.FIRST_COMPLETED
                     )
+                    for f in completed:
+                        f.result()  # re-raise any exception from video_to_zarr
                     pbar.update(len(completed))
 
                 futures.add(
@@ -409,6 +411,8 @@ def main(
                 )
 
             completed, futures = concurrent.futures.wait(futures)
+            for f in completed:
+                f.result()  # re-raise any exception from video_to_zarr
             pbar.update(len(completed))
 
     # dump to disk

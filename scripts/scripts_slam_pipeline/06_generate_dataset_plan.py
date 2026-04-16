@@ -731,7 +731,9 @@ def main(
             # load check data
             check_path = video_dir.joinpath("check_result.txt")
             if check_path.is_file():
-                if not check_path.open("r").read().startswith("true"):
+                with check_path.open("r") as f:
+                    check_result = f.read()
+                if not check_result.startswith("true"):
                     logger.info(
                         "Skipping %s, manually filtered with check_result.txt!=true",
                         video_dir.name,
