@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command(help="Detect and localize ArUco tags in a GoPro video.")
-@click.option("-i", "--input", required=True)
+@click.option("-i", "--input_path", required=True)
 @click.option("-o", "--output", required=True)
 @click.option("-ci", "--camera_intrinsics", required=True)
 @click.option("-ac", "--aruco_yaml", required=True)
@@ -51,10 +51,12 @@ logger = logging.getLogger(__name__)
     help="Process every Nth frame to match SLAM trajectory sampling rate "
     "(e.g. 2 for 120fps video where SLAM ran at 60fps).",
 )
-def main(input, output, camera_intrinsics, aruco_yaml, num_workers, slam_frame_stride):
+def main(
+    input_path, output, camera_intrinsics, aruco_yaml, num_workers, slam_frame_stride
+):
     """Detect and localize ArUco tags in a GoPro video.
 
-    :param input: Path to input video file.
+    :param input_path: Path to input video file.
     :param output: Path for output pickle file containing per-frame tag detections.
     :param camera_intrinsics: Path to fisheye camera intrinsics JSON file.
     :param aruco_yaml: Path to ArUco config YAML file.
@@ -77,7 +79,7 @@ def main(input, output, camera_intrinsics, aruco_yaml, num_workers, slam_frame_s
     )
 
     results = list()
-    with av.open(pathlib.Path(input).resolve()) as in_container:
+    with av.open(pathlib.Path(input_path).resolve()) as in_container:
         in_stream = in_container.streams.video[0]
         in_stream.thread_type = "AUTO"
         in_stream.thread_count = num_workers

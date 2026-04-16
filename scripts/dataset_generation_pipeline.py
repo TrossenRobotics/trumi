@@ -193,7 +193,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
         cmd = [
             sys.executable,
             str(script_path),
-            "--input",
+            "--input_dir",
             str(session),
             "--slam_frame_stride",
             str(slam_frame_stride),

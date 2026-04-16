@@ -109,13 +109,13 @@ def get_x_projection(tx_tag_this, tx_tag_other):
 
 @click.command(help="Generate dataset_plan.pkl from a processed session directory.")
 @click.option(
-    "-i", "--input", required=True, help="Session directory (parent of demos/)."
+    "-i", "--input_dir", required=True, help="Session directory (parent of demos/)."
 )
 @click.option(
     "-o",
     "--output",
     default=None,
-    help="Output path for dataset_plan.pkl. Defaults to <input>/dataset_plan.pkl.",
+    help="Output path for dataset_plan.pkl. Defaults to <input_dir>/dataset_plan.pkl.",
 )
 @click.option(
     "-to",
@@ -128,7 +128,7 @@ def get_x_projection(tx_tag_this, tx_tag_other):
     "-ts",
     "--tx_slam_tag",
     default=None,
-    help="Path to tx_slam_tag.json. Defaults to <input>/demos/mapping_*/tx_slam_tag.json.",
+    help="Path to tx_slam_tag.json. Defaults to <input_dir>/demos/mapping_*/tx_slam_tag.json.",
 )
 @click.option(
     "-nz",
@@ -165,7 +165,7 @@ def get_x_projection(tx_tag_this, tx_tag_other):
     "(e.g. 2 when raw video is 120fps and SLAM ran at 60fps).",
 )
 def main(
-    input,
+    input_dir,
     output,
     tcp_offset,
     tx_slam_tag,
@@ -177,7 +177,7 @@ def main(
 ):
     """Generate dataset_plan.pkl from a processed session directory.
 
-    :param input: Session directory (parent of demos/).
+    :param input_dir: Session directory (parent of demos/).
     :param output: Output path for dataset_plan.pkl.
     :param tcp_offset: Distance (m) from gripper tip to camera mounting screw.
     :param tx_slam_tag: Path to tx_slam_tag.json.
@@ -191,7 +191,7 @@ def main(
 
     # --- stage 0 ---
     # gather inputs
-    input_path = pathlib.Path(input).expanduser().resolve()
+    input_path = pathlib.Path(input_dir).expanduser().resolve()
     demos_dir = input_path.joinpath("demos")
     if output is None:
         output = input_path.joinpath("dataset_plan.pkl")

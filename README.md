@@ -84,7 +84,8 @@ Before running, organize your session directory by renaming the appropriate vide
 <session_dir>/
 └── raw_videos/
     ├── mapping.mp4               # rename your mapping video to this
-    ├── gripper_calibration.mp4   # rename your gripper calibration video to this
+    ├── gripper_calibration/      # place gripper calibration video(s) here
+    │   └── *.mp4                 # one video per camera serial
     └── *.mp4                     # remaining videos are treated as demonstrations
 ```
 
