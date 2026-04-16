@@ -156,13 +156,14 @@ def normalize(vec, eps=1e-12):
 def rot_from_directions(from_vec, to_vec):
     """Compute the minimal Rotation that maps from_vec onto to_vec.
 
+    Operates on single 3D vectors.
+
     :param from_vec: Source direction vector, shape (3,).
     :param to_vec: Target direction vector, shape (3,).
     :return: scipy.spatial.transform.Rotation mapping from_vec to to_vec.
     """
     from_vec = normalize(from_vec)
     to_vec = normalize(to_vec)
-    # Use sum-of-products for correctness with batched inputs.
     dot = np.clip(np.sum(from_vec * to_vec, axis=-1), -1.0, 1.0)
     axis = np.cross(from_vec, to_vec)
     # Handle antiparallel case where cross product is ~0 but angle is ~pi.

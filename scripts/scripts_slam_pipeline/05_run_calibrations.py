@@ -83,6 +83,7 @@ def main(input_dir, tag_det_threshold, nominal_z):
         str(csv_path),
         "--output",
         str(slam_tag_path),
+        # Keyframe poses are the most accurate; always use them for tx_slam_tag.
         "--keyframe_only",
     ]
     subprocess.run(cmd, check=True)
