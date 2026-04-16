@@ -2,12 +2,12 @@
 Organize raw GoPro MP4 videos into a structured demo directory for downstream processing.
 
 :Steps:
-    1. If raw_videos/ does not exist, create it and move all MP4s found anywhere
-       under <session_dir> into it.
+    1. If raw_videos/ does not exist, create it and move all MP4s found directly
+       in <session_dir> into it.
     2. If raw_videos/mapping.mp4 does not exist, rename the largest MP4 in
        raw_videos/ to mapping.mp4.
-    3. If raw_videos/gripper_calibration.mp4 does not exist, rename the earliest-
-       recorded MP4 (excluding mapping.mp4) to gripper_calibration.mp4.
+    3. If raw_videos/gripper_calibration/ does not exist, create it and move the
+       earliest-recorded MP4 (excluding mapping.mp4) per camera serial into it.
     4. Move all MP4s in raw_videos/ to <session_dir>/demos/ with metadata-based
        directory names.
     5. Remove raw_videos/ if it is empty after moving all files.
@@ -86,11 +86,12 @@ def main(session_dir):
                 f"raw_videos/mapping.mp4 doesn't exist! Renaming largest file {max_path.name}."
             )
 
-        # create gripper calibration video if doesn't exist
-        gripper_cal_vid_path = input_dir.joinpath("gripper_calibration.mp4")
-        if not gripper_cal_vid_path.exists():
+        # create gripper calibration dir if doesn't exist
+        gripper_cal_dir = input_dir.joinpath("gripper_calibration")
+        if not gripper_cal_dir.is_dir():
+            gripper_cal_dir.mkdir()
             logger.info(
-                "raw_videos/gripper_calibration.mp4 doesn't exist! Creating one with the first video of each camera serial."
+                "raw_videos/gripper_calibration/ doesn't exist! Creating one with the first video of each camera serial."
             )
 
             serial_start_dict = dict()
@@ -100,7 +101,7 @@ def main(session_dir):
             ]
             if not mp4_paths:
                 raise click.ClickException(
-                    f"No MP4 files found in '{input_dir}' (excluding mapping). Cannot create gripper_calibration.mp4."
+                    f"No MP4 files found in '{input_dir}' (excluding mapping). Cannot create gripper_calibration/."
                 )
             with ExifToolHelper() as et:
                 for mp4_path in mp4_paths:
@@ -122,8 +123,9 @@ def main(session_dir):
                         serial_path_dict[cam_serial] = mp4_path
 
             for serial, path in serial_path_dict.items():
+                out_path = gripper_cal_dir.joinpath(path.name)
                 logger.info(f"Selected {path.name} for camera serial {serial}")
-                shutil.move(path, gripper_cal_vid_path)
+                shutil.move(path, out_path)
 
         # look for mp4 video in all subdirectories in input_dir
         # create dir for each video with video specific name
@@ -163,7 +165,7 @@ def main(session_dir):
                         + "_"
                         + mp4_path.name
                     )
-                elif mp4_path.name.startswith("gripper_cal"):
+                elif mp4_path.parent.name.startswith("gripper_calibration"):
                     out_dname = (
                         "gripper_calibration_"
                         + cam_serial
@@ -183,9 +185,14 @@ def main(session_dir):
                 shutil.move(mp4_path, out_video_path)
 
         # remove raw_videos dir if empty
-        if input_dir.is_dir() and not any(input_dir.iterdir()):
-            input_dir.rmdir()
-            logger.info(f"Removed empty directory: {input_dir}")
+        if input_dir.is_dir():
+            for subdir in input_dir.iterdir():
+                if subdir.is_dir() and not any(subdir.iterdir()):
+                    subdir.rmdir()
+                    logger.info(f"Removed empty directory: {subdir}")
+            if not any(input_dir.iterdir()):
+                input_dir.rmdir()
+                logger.info(f"Removed empty directory: {input_dir}")
 
 
 if __name__ == "__main__":
