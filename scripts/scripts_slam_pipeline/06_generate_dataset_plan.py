@@ -891,6 +891,10 @@ def main(
         is_step_valid = np.all(all_is_valid, axis=0)
 
         # generate episode start and end pose for each gripper
+        if not np.any(is_step_valid):
+            logger.info("Skipped demo %d, no valid steps.", demo_idx)
+            n_dropped_demos += 1
+            continue
         first_valid_step = np.nonzero(is_step_valid)[0][0]
         last_valid_step = np.nonzero(is_step_valid)[0][-1]
         demo_start_poses = list()
