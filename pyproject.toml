@@ -3,7 +3,7 @@ name = "trumi"
 version = "0.1.0"
 description = "Trossen Robotics Universal Manipulation Interface"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "av>=17.0.0",
     "click>=8.3.1",

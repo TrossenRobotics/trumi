@@ -86,6 +86,8 @@ def main(session_dir):
                 f"raw_videos/mapping.mp4 doesn't exist! Renaming largest file {max_path.name}."
             )
 
+        # TODO(abhichothani42): Replace system exiftool with a pure-Python metadata library.
+        # TODO(abhichothani42): Simplify/remove gripper_calibration selection if it's the same across all TRumi configs.
         # create gripper calibration dir if doesn't exist
         gripper_cal_dir = input_dir.joinpath("gripper_calibration")
         if not gripper_cal_dir.is_dir():
