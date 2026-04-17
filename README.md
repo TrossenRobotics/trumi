@@ -12,7 +12,7 @@
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.12
 - [uv](https://docs.astral.sh/uv/) package manager
 - [Docker](https://docs.docker.com/get-started/get-docker/) (required for ORB-SLAM3)
 - [ExifTool](https://exiftool.org/) (`sudo apt install libimage-exiftool-perl` on Ubuntu)
@@ -22,6 +22,7 @@
 Clone the repository and install the package:
 
 ```bash
+cd ~
 git clone https://github.com/TrossenRobotics/trumi.git
 cd trumi
 uv sync
@@ -66,13 +67,15 @@ hf download TrossenRoboticsCommunity/trumi-dataset \
     --local-dir .
 ```
 
-Before running, ensure the Docker daemon is running:
+Before running `dataset_generation_pipeline.py`, ensure:
+
+1. The Docker daemon is running:
 
 ```bash
 docker info
 ```
 
-Before running, organize your session directory by renaming the appropriate videos:
+2. Your session directory is organized with the appropriate videos:
 
 ```
 <session_dir>/
