@@ -72,12 +72,6 @@ Before running, ensure the Docker daemon is running:
 docker info
 ```
 
-If it is not running, start it with:
-
-```bash
-sudo systemctl start docker
-```
-
 Before running, organize your session directory by renaming the appropriate videos:
 
 ```
@@ -196,7 +190,13 @@ The mapping video is used by ORB-SLAM3 to build a 3D map of the environment. SLA
 
 We provide printed mapping markers — place the marker on the table and follow the mapping process carefully. Correct placement is critical for SLAM success rate.
 
-To print your own markers, use the files in [`assets/aruco_markers/`](assets/aruco_markers/).
+To print your own markers, use the files in [`assets/aruco_markers/`](assets/aruco_markers/). The physical printed size must match exactly — incorrect sizes will produce inaccurate poses and gripper widths:
+
+| Marker | Dictionary | ID | Size |
+|---|---|---|---|
+| Mapping | DICT_4X4_50 | 13 | 0.16 m |
+| Gripper left | DICT_4X4_50 | 0 | 0.016 m |
+| Gripper right | DICT_4X4_50 | 1 | 0.016 m |
 
 ### Step 3: Gripper Calibration Video
 

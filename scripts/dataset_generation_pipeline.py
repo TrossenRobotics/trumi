@@ -24,6 +24,16 @@ import click
 logger = logging.getLogger(__name__)
 
 
+def _run(cmd: list, step_name: str) -> None:
+    """Run a subprocess command, re-raising failures as a ClickException with step context."""
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        raise click.ClickException(
+            f"Step '{step_name}' failed with exit code {e.returncode}."
+        ) from e
+
+
 # TODO(abhichothani42): make these scripts import modules
 @click.command()
 @click.argument("session_dir", nargs=-1, required=True)
@@ -63,6 +73,9 @@ def main(session_dir, calibration_dir, slam_frame_stride):
     for session in session_dir:
         session = pathlib.Path(session).resolve()
 
+        if not session.is_dir():
+            raise click.ClickException(f"Session directory not found: {session}")
+
         # 00 Organize raw GoPro videos into demo directory structure
         logger.info("\n%s 00_process_videos %s", "#" * 15, "#" * 15)
         script_path = script_dir.joinpath("00_process_videos.py")
@@ -71,7 +84,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             raise click.ClickException(f"Could not find script at: {script_path}")
 
         cmd = [sys.executable, str(script_path), str(session)]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "00_process_videos")
 
         # 01 extract IMU telemetry from each raw_video.mp4 into imu_data.json
         logger.info("\n%s 01_extract_gopro_imu %s", "#" * 15, "#" * 15)
@@ -81,7 +94,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             raise click.ClickException(f"Could not find script at: {script_path}")
 
         cmd = [sys.executable, str(script_path), str(session)]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "01_extract_gopro_imu")
 
         # 02 create ORB-SLAM3 map atlas from the mapping video
         logger.info("\n%s 02_create_map %s", "#" * 15, "#" * 15)
@@ -92,7 +105,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             raise click.ClickException(f"Could not find script at: {script_path}")
 
         demo_dir = session.joinpath("demos")
-        mapping_dirs = list(demo_dir.glob("mapping_*"))
+        mapping_dirs = sorted(demo_dir.glob("mapping_*"))
         if not mapping_dirs:
             raise click.ClickException(f"No mapping directory found in: {demo_dir}")
         mapping_dir = mapping_dirs[0]
@@ -111,7 +124,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
                 "--map_path",
                 str(map_path),
             ]
-            subprocess.run(cmd, check=True)
+            _run(cmd, "02_create_map")
 
             # check if map_atlas.osa file is generated
             if not map_path.is_file():
@@ -139,7 +152,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             "--map_path",
             str(map_path),
         ]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "03_batch_slam")
 
         # 04 detect and localize ArUco tags in all demo videos
         logger.info("\n%s 04_detect_aruco %s", "#" * 15, "#" * 15)
@@ -170,7 +183,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             "--slam_frame_stride",
             str(slam_frame_stride),
         ]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "04_detect_aruco")
 
         # 05 run slam tag and gripper range calibrations
         logger.info("\n%s 05_run_calibrations %s", "#" * 15, "#" * 15)
@@ -183,7 +196,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             "--input_dir",
             str(session),
         ]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "05_run_calibrations")
 
         # 06 generate dataset plan
         logger.info("\n%s 06_generate_dataset_plan %s", "#" * 15, "#" * 15)
@@ -198,7 +211,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             "--slam_frame_stride",
             str(slam_frame_stride),
         ]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "06_generate_dataset_plan")
 
         # 07 generate replay buffer
         logger.info("\n%s 07_generate_replay_buffer %s", "#" * 15, "#" * 15)
@@ -215,7 +228,7 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             str(slam_frame_stride),
             str(session),
         ]
-        subprocess.run(cmd, check=True)
+        _run(cmd, "07_generate_replay_buffer")
 
 
 if __name__ == "__main__":
