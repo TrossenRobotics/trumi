@@ -10,7 +10,7 @@ pre-built map atlas and generate camera_trajectory.csv file.
     3. Output per-video camera_trajectory.csv files.
 
 :Usage:
-    uv run python scripts_slam_pipeline/03_batch_slam.py --input_dir <demos_dir> [--map_path <map.osa>]
+    uv run python scripts/scripts_slam_pipeline/03_batch_slam.py --input_dir <demos_dir> [--map_path <map.osa>]
 """
 
 import concurrent.futures

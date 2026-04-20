@@ -10,7 +10,7 @@ Create an ORB-SLAM3 map atlas from a GoPro mapping video using a Docker-based SL
     4. Output map atlas (*.osa) and camera trajectory CSV.
 
 :Usage:
-    uv run python scripts_slam_pipeline/02_create_map.py --input_dir <mapping_dir> [--map_path <output.osa>]
+    uv run python scripts/scripts_slam_pipeline/02_create_map.py --input_dir <mapping_dir> [--map_path <output.osa>]
 """
 
 import logging

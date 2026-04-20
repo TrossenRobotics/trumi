@@ -9,7 +9,7 @@ Extract GoPro IMU telemetry from raw_video.mp4 files and save as imu_data.json.
     4. Save telemetry as imu_data.json alongside each raw_video.mp4.
 
 :Usage:
-    uv run python scripts_slam_pipeline/01_extract_gopro_imu.py <session_dir> [<session_dir> ...]
+    uv run python scripts/scripts_slam_pipeline/01_extract_gopro_imu.py <session_dir> [<session_dir> ...]
 """
 
 import concurrent.futures
