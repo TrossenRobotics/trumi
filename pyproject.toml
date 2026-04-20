@@ -30,3 +30,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/trumi"]
+
+[tool.typos.default.extend-words]
+# "Pn" appears in cv2.solvePnP (Perspective-n-Point), not a typo
+Pn = "Pn"
