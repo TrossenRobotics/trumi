@@ -62,6 +62,7 @@ An example dataset is available on [Hugging Face](https://huggingface.co/dataset
 Download it using the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) (downloads into the current directory, preserving the `example_gopro13_dataset/` folder structure):
 
 ```bash
+cd ~/trumi
 hf download TrossenRoboticsCommunity/trumi-dataset \
     --repo-type dataset \
     --local-dir .

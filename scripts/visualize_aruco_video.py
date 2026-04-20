@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # Length of the 3D pose axis arrows drawn on each tag, in metres.
 AXIS_LENGTH_M = 0.03
 
-TAG_LABELS = {0: "gripper fingle left", 1: "gripper fingle right"}
+TAG_LABELS = {0: "gripper finger left", 1: "gripper finger right"}
 
 
 def _build_frame_lookup(detections: list) -> dict:
@@ -141,6 +141,8 @@ def main(input_dir, camera_intrinsics, output_video, slam_frame_stride):
     else:
         camera_intrinsics = pathlib.Path(camera_intrinsics).resolve()
 
+    if not camera_intrinsics.is_file():
+        raise click.ClickException(f"Camera intrinsics not found: {camera_intrinsics}")
     if not input_video.is_file():
         raise click.ClickException(f"raw_video.mp4 not found in {input_dir}")
     if not pkl_path.is_file():

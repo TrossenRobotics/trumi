@@ -105,10 +105,13 @@ def main(session_dir, calibration_dir, slam_frame_stride):
             raise click.ClickException(f"Could not find script at: {script_path}")
 
         demo_dir = session.joinpath("demos")
+        if not demo_dir.is_dir():
+            raise click.ClickException(f"Demos directory not found: {demo_dir}")
+
         mapping_dir = next(demo_dir.glob("mapping_*"), None)
 
-        if not mapping_dir.is_dir():
-            raise click.ClickException(f"Mapping dir not found at: {mapping_dir}.")
+        if mapping_dir is None or not mapping_dir.is_dir():
+            raise click.ClickException(f"No mapping_* directory found in {demo_dir}")
 
         map_path = mapping_dir.joinpath("map_atlas.osa")
 
