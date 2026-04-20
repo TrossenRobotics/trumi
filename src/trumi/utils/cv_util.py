@@ -231,59 +231,6 @@ def detect_localize_aruco_tags(
     return tag_dict
 
 
-def get_charuco_board(
-    aruco_dict=None,
-    tag_id_offset=50,
-    grid_size=(8, 5),
-    square_length_mm=50,
-    tag_length_mm=30,
-):
-    """Create a ChArUco calibration board.
-
-    :param aruco_dict: Base ArUco dictionary; markers are taken starting at
-        tag_id_offset. Defaults to DICT_4X4_100.
-    :param tag_id_offset: First marker ID to use from the dictionary.
-    :param grid_size: Board grid as (cols, rows).
-    :param square_length_mm: Checkerboard square side length in millimetres.
-    :param tag_length_mm: ArUco marker side length in millimetres.
-    :return: cv2.aruco.CharucoBoard instance.
-    """
-    if aruco_dict is None:
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
-
-    aruco_dict = cv2.aruco.Dictionary(
-        aruco_dict.bytesList[tag_id_offset:], aruco_dict.markerSize
-    )
-    board = cv2.aruco.CharucoBoard(
-        size=grid_size,
-        squareLength=square_length_mm / 1000,
-        markerLength=tag_length_mm / 1000,
-        dictionary=aruco_dict,
-    )
-    return board
-
-
-def draw_charuco_board(board, dpi=300, padding_mm=15):
-    """Render a ChArUco board to a grayscale image.
-
-    :param board: cv2.aruco.CharucoBoard to render.
-    :param dpi: Output resolution in dots per inch.
-    :param padding_mm: White border around the board in millimetres.
-    :return: Grayscale numpy array of the rendered board.
-    """
-    grid_size = np.array(board.getChessboardSize())
-    square_length_mm = board.getSquareLength() * 1000
-
-    mm_per_inch = 25.4
-    board_size_pixel = (
-        (grid_size * square_length_mm + padding_mm * 2) / mm_per_inch * dpi
-    )
-    board_size_pixel = board_size_pixel.round().astype(np.int64)
-    padding_pixel = int(padding_mm / mm_per_inch * dpi)
-    board_img = board.generateImage(outSize=board_size_pixel, marginSize=padding_pixel)
-    return board_img
-
-
 def get_gripper_width(tag_dict, left_id, right_id, nominal_z=0.072, z_tolerance=0.008):
     """Estimate gripper opening width from the two fingertip ArUco tags.
 

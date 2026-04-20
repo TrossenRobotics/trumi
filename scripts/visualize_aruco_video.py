@@ -9,7 +9,7 @@
 :Usage:
     uv run python scripts/visualize_aruco_video.py \\
         -i path/to/demo_dir \\
-        -ci path/to/intrinsics.json \\
+        [-ci path/to/intrinsics.json] \\
         [-sfs 2] \\
         -o path/to/output.mp4
 """
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # Length of the 3D pose axis arrows drawn on each tag, in metres.
 AXIS_LENGTH_M = 0.03
 
-TAG_LABELS = {0: "gripper left", 1: "gripper right"}
+TAG_LABELS = {0: "gripper fingle left", 1: "gripper fingle right"}
 
 
 def _build_frame_lookup(detections: list) -> dict:
@@ -100,9 +100,9 @@ def _draw_detections(
 @click.option(
     "-ci",
     "--camera_intrinsics",
-    required=True,
+    default=None,
     type=click.Path(exists=True),
-    help="Fisheye camera intrinsics JSON (2.7k).",
+    help="Fisheye camera intrinsics JSON (2.7k). Defaults to example/calibration/gopro13_intrinsics_2_7k.json.",
 )
 @click.option(
     "-o",
@@ -130,6 +130,17 @@ def main(input_dir, camera_intrinsics, output_video, slam_frame_stride):
     input_video = input_dir / "raw_video.mp4"
     pkl_path = input_dir / "tag_detection.pkl"
 
+    if camera_intrinsics is None:
+        camera_intrinsics = (
+            pathlib.Path(__file__)
+            .parent.parent.joinpath(
+                "example", "calibration", "gopro13_intrinsics_2_7k.json"
+            )
+            .resolve()
+        )
+    else:
+        camera_intrinsics = pathlib.Path(camera_intrinsics).resolve()
+
     if not input_video.is_file():
         raise click.ClickException(f"raw_video.mp4 not found in {input_dir}")
     if not pkl_path.is_file():
@@ -143,9 +154,7 @@ def main(input_dir, camera_intrinsics, output_video, slam_frame_stride):
         detections = pickle.load(f)
     frame_lookup = _build_frame_lookup(detections)
 
-    raw_intr = parse_fisheye_intrinsics(
-        json.loads(pathlib.Path(camera_intrinsics).read_text())
-    )
+    raw_intr = parse_fisheye_intrinsics(json.loads(camera_intrinsics.read_text()))
     # D does not change with resolution (Kannala-Brandt params are resolution-independent).
     D = raw_intr["D"]
 

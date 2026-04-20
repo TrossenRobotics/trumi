@@ -37,8 +37,8 @@ import numpy as np
 import zarr
 from tqdm import tqdm
 
-from diffusion_policy.codecs.imagecodecs_numcodecs import JpegXl, register_codecs
-from diffusion_policy.common.replay_buffer import ReplayBuffer
+from trumi.codecs.imagecodecs_numcodecs import JpegXl, register_codecs
+from trumi.data.replay_buffer import ReplayBuffer
 from trumi.utils.cv_util import (
     FisheyeRectConverter,
     draw_predefined_mask,

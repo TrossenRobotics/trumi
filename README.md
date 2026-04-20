@@ -176,7 +176,7 @@ Scan the following QR code with your GoPro to apply all required camera settings
 
 **Note:** This step is only required for bi-manual (two-gripper) data collection. Skip it if you are using a single gripper.
 
-Open the [timecode sync link](https://www.timecode.org/) and scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
+Open the [timecode sync link](https://umi-gripper.github.io/qrlocal/) and scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
 
 **Tip:** Adjust your distance to the QR code if you have difficulty scanning.
 
@@ -198,8 +198,10 @@ To print your own markers, use the files in [`assets/aruco_markers/`](assets/aru
 | Marker | Dictionary | ID | Size |
 |---|---|---|---|
 | Mapping | DICT_4X4_50 | 13 | 0.16 m |
-| Gripper left | DICT_4X4_50 | 0 | 0.016 m |
-| Gripper right | DICT_4X4_50 | 1 | 0.016 m |
+| Gripper 0 left | DICT_4X4_50 | 0 | 0.016 m |
+| Gripper 0 right | DICT_4X4_50 | 1 | 0.016 m |
+| Gripper 1 left | DICT_4X4_50 | 6 | 0.016 m |
+| Gripper 1 right | DICT_4X4_50 | 7 | 0.016 m |
 
 ### Step 3: Gripper Calibration Video
 
