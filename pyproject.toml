@@ -1,0 +1,32 @@
+[project]
+name = "trumi"
+version = "0.1.0"
+description = "Trossen Robotics Universal Manipulation Interface"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "av>=17.0.0",
+    "click>=8.3.1",
+    "imagecodecs>=2026.3.6",
+    "matplotlib>=3.10.8",
+    "opencv-python>=4.13.0.92",
+    "pandas>=3.0.1",
+    "py-gpmf-parser>=0.1.1",
+    "pyexiftool>=0.5.6",
+    "scikit-fda>=0.10.1",
+    "scipy>=1.17.1",
+    "tqdm>=4.67.3",
+    "zarr>=2.0,<3.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trumi"]

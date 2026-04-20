@@ -1,0 +1,46 @@
+# Quick Start:
+#
+# uv pip install pre-commit
+# pre-commit install && pre-commit install -t pre-push
+# pre-commit run --all-files
+#
+# To Skip Checks:
+#
+# git commit --no-verify
+fail_fast: false
+
+default_language_version:
+  python: python3.12
+
+repos:
+  # Git & File Hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  # Ruff Linter and Formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      # Run the linter with auto-fix.
+      - id: ruff
+        args: [--fix, --select, "I"] # I - isort
+      # Run the formatter.
+      - id: ruff-format
+
+  # Typos
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.44.0
+    hooks:
+      - id: typos
