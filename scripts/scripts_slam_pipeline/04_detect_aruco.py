@@ -120,7 +120,7 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers, slam_frame_strid
                 cmd = [
                     sys.executable,
                     str(script_path),
-                    "--input",
+                    "--input_path",
                     str(video_path),
                     "--output",
                     str(pkl_path),

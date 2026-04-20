@@ -37,8 +37,8 @@ import numpy as np
 import zarr
 from tqdm import tqdm
 
-from diffusion_policy.codecs.imagecodecs_numcodecs import JpegXl, register_codecs
-from diffusion_policy.common.replay_buffer import ReplayBuffer
+from trumi.codecs.imagecodecs_numcodecs import JpegXl, register_codecs
+from trumi.data.replay_buffer import ReplayBuffer
 from trumi.utils.cv_util import (
     FisheyeRectConverter,
     draw_predefined_mask,
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command(help="Generate a Zarr replay buffer from SLAM pipeline outputs.")
-@click.argument("input", nargs=-1)
+@click.argument("input_dirs", nargs=-1)
 @click.option("-o", "--output", required=True, help="Output .zarr.zip path.")
 @click.option(
     "-or",
@@ -113,7 +113,7 @@ logger = logging.getLogger(__name__)
     help="Frame stride used by SLAM and ArUco detection (e.g. 2 when raw video is 120fps and SLAM ran at 60fps).",
 )
 def main(
-    input,
+    input_dirs,
     output,
     out_res,
     out_fov,
@@ -126,7 +126,7 @@ def main(
 ):
     """Generate a Zarr replay buffer from SLAM pipeline outputs.
 
-    :param input: One or more input directories containing dataset_plan.pkl.
+    :param input_dirs: One or more input directories containing dataset_plan.pkl.
     :param output: Output .zarr.zip path.
     :param out_res: Output image resolution as 'W,H' string.
     :param out_fov: Vertical FOV for fisheye rectification (degrees). If omitted
@@ -173,7 +173,7 @@ def main(
     buffer_start = 0
     all_videos = set()
     vid_args = list()
-    for ipath in input:
+    for ipath in input_dirs:
         ipath = pathlib.Path(ipath).expanduser().resolve()
         demos_path = ipath.joinpath("demos")
         plan_path = ipath.joinpath("dataset_plan.pkl")
