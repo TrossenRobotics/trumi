@@ -36,7 +36,12 @@ logger = logging.getLogger(__name__)
 # Length of the 3D pose axis arrows drawn on each tag, in metres.
 AXIS_LENGTH_M = 0.03
 
-TAG_LABELS = {0: "gripper finger left", 1: "gripper finger right"}
+TAG_LABELS = {
+    0: "gripper_0 finger left",
+    1: "gripper_0 finger right",
+    6: "gripper_1 finger left",
+    7: "gripper_1 finger right",
+}
 
 
 def _build_frame_lookup(detections: list) -> dict:

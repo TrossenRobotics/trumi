@@ -173,11 +173,17 @@ Scan the following QR code with your GoPro to apply all required camera settings
 
 ![Camera settings QR code](assets/camera_settings_qr.jpeg)
 
+Once the settings are saved, the GoPro screen will show **"Labs-Trumi"** with the applied configuration:
+
+![Camera settings saved confirmation](assets/camera_settings_saved_check.jpg)
+
+**Note:** When using with ultra wide len, disable auto lens detection and manually set the lens to standard (Preferences > Lens Mod > Standard). This prevents GoPro from applying additional distortion correction, ensuring raw undistorted frames are saved.
+
 ### Step 1: Timecode Sync
 
 **Note:** This step is only required for bi-manual (two-gripper) data collection. Skip it if you are using a single gripper.
 
-Open the [timecode sync link](https://umi-gripper.github.io/qrlocal/) and scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
+Open [`assets/timecode_sync/index.html`](assets/timecode_sync/index.html) in a browser and scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
 
 **Tip:** Adjust your distance to the QR code if you have difficulty scanning.
 

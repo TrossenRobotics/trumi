@@ -130,7 +130,10 @@ def main(
     logger.info("Found %d video dirs", len(input_video_dirs))
 
     if map_path is None:
-        map_path = input_dir.joinpath("mapping", "map_atlas.osa")
+        mapping_dir = next(input_dir.glob("mapping_*"), None)
+        if mapping_dir is None:
+            raise click.ClickException(f"No mapping_* directory found in {input_dir}")
+        map_path = mapping_dir.joinpath("map_atlas.osa")
     else:
         map_path = pathlib.Path(map_path).resolve()
     if not map_path.is_file():
