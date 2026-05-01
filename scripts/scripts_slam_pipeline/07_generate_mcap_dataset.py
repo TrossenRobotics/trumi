@@ -200,7 +200,7 @@ def _encode_compressed_image(img_rgb, t_ns, frame_id, quality=95):
     "--num_workers",
     type=int,
     default=None,
-    help="Number of parallel episode-writing threads. Defaults to CPU count.",
+    help="Number of parallel episode-writing threads. Defaults to half CPU count.",
 )
 @click.option(
     "-sfs",
@@ -241,12 +241,15 @@ def main(
         if not click.confirm(
             f"Output directory {output} already contains episode files. Overwrite?"
         ):
-            raise SystemExit("Aborted.")
+            raise click.Abort()
+        # does not leave leftover files from a previous run.
+        for stale in output_path.glob("episode_*.mcap"):
+            stale.unlink()
 
     out_res = tuple(int(x) for x in out_res.split(","))
 
     if num_workers is None:
-        num_workers = multiprocessing.cpu_count()
+        num_workers = max(1, multiprocessing.cpu_count() // 2)
     cv2.setNumThreads(1)
 
     fisheye_converter = None
