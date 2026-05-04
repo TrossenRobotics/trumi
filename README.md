@@ -183,7 +183,11 @@ Once the settings are saved, the GoPro screen will show **"Labs-Trumi"** with th
 
 **Note:** This step is only required for bi-manual (two-gripper) data collection. Skip it if you are using a single gripper.
 
-Open [`assets/timecode_sync/index.html`](assets/timecode_sync/index.html) in a browser and scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
+Serve the timecode sync page locally and open the printed URL in a browser, then scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
+
+```bash
+uv run python scripts/serve_timecode_sync.py
+```
 
 **Tip:** Adjust your distance to the QR code if you have difficulty scanning.
 
