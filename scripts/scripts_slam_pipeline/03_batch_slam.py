@@ -70,7 +70,7 @@ def runner(cmd, cwd, stdout_path, stderr_path, timeout, **kwargs):
     "-m",
     "--map_path",
     default=None,
-    help="ORB_SLAM3 *.osa map atlas for localization. Defaults to <input_dir>/mapping/map_atlas.osa",
+    help="ORB_SLAM3 *.osa map atlas for localization. Defaults to <input_dir>/mapping_*/map_atlas.osa",
 )
 @click.option("-d", "--docker_image", default="orb_slam3")
 @click.option(
@@ -117,7 +117,7 @@ def main(
 
     :param input_dir: Demos directory containing raw_video.mp4 paths.
     :param map_path: Path to the ORB-SLAM3 map atlas (*.osa) for localization. Defaults to
-        <input_dir>/mapping/map_atlas.osa.
+        <input_dir>/mapping_*/map_atlas.osa.
     :param docker_image: Name of the Docker image containing the ORB-SLAM3 binary.
     :param num_workers: Parallel Docker workers. Defaults to cpu_count // 2.
     :param max_lost_frames: Terminate SLAM if tracking is lost for this many consecutive frames.
@@ -130,7 +130,10 @@ def main(
     logger.info("Found %d video dirs", len(input_video_dirs))
 
     if map_path is None:
-        map_path = input_dir.joinpath("mapping", "map_atlas.osa")
+        mapping_dir = next(input_dir.glob("mapping_*"), None)
+        if mapping_dir is None:
+            raise click.ClickException(f"No mapping_* directory found in {input_dir}")
+        map_path = mapping_dir.joinpath("map_atlas.osa")
     else:
         map_path = pathlib.Path(map_path).resolve()
     if not map_path.is_file():
