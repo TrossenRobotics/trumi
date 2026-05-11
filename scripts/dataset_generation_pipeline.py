@@ -8,7 +8,7 @@
     4. Detect ArUco tags in all demo videos.
     5. Run SLAM tag and gripper range calibrations.
     6. Generate dataset_plan.pkl.
-    7. Generate the Zarr replay buffer (dataset.zarr.zip).
+    7. Generate the dataset (MCAP or Zarr replay buffer).
 
 :Usage:
     uv run python scripts/dataset_generation_pipeline.py <session_dir> [<session_dir> ...]
@@ -39,19 +39,29 @@ def _run(cmd: list, step_name: str) -> None:
 @click.argument("session_dir", nargs=-1, required=True)
 @click.option("-c", "--calibration_dir", default=None)
 @click.option(
+    "-f",
+    "--format",
+    "dataset_format",
+    type=click.Choice(["mcap", "zarr"], case_sensitive=False),
+    default="mcap",
+    show_default=True,
+    help="Output dataset format.",
+)
+@click.option(
     "-sfs",
     "--slam_frame_stride",
     type=int,
     default=2,
     help="Frame stride used by SLAM and ArUco (raw_fps / slam_fps).",
 )
-def main(session_dir, calibration_dir, slam_frame_stride):
+def main(session_dir, calibration_dir, dataset_format, slam_frame_stride):
     """Run the full dataset generation pipeline for each session directory.
 
     :param session_dir: One or more session directories to process.
     :param calibration_dir: Path to the calibration directory containing
         gopro13_intrinsics_2_7k.json and aruco_config.yaml. Defaults to
         example/calibration/ relative to the repository root.
+    :param dataset_format: Output format — 'mcap' (default) or 'zarr'.
     :param slam_frame_stride: Frame stride matching SLAM/ArUco detection rate
         (raw_fps / slam_fps). Default 2 matches 120 fps -> 60 fps SLAM.
     """
@@ -213,22 +223,39 @@ def main(session_dir, calibration_dir, slam_frame_stride):
         ]
         _run(cmd, "06_generate_dataset_plan")
 
-        # 07 generate replay buffer
-        logger.info("\n%s 07_generate_replay_buffer %s", "#" * 15, "#" * 15)
-        script_path = script_dir.joinpath("07_generate_replay_buffer.py")
-        if not script_path.is_file():
-            raise click.ClickException(f"Could not find script at: {script_path}")
-        output_path = session.joinpath("dataset.zarr.zip")
-        cmd = [
-            sys.executable,
-            str(script_path),
-            "--output",
-            str(output_path),
-            "--slam_frame_stride",
-            str(slam_frame_stride),
-            str(session),
-        ]
-        _run(cmd, "07_generate_replay_buffer")
+        # 07 generate dataset
+        logger.info(
+            "\n%s 07_generate_dataset (%s) %s", "#" * 15, dataset_format, "#" * 15
+        )
+        if dataset_format == "mcap":
+            script_path = script_dir.joinpath("07_generate_mcap_dataset.py")
+            if not script_path.is_file():
+                raise click.ClickException(f"Could not find script at: {script_path}")
+            output_path = session.joinpath("dataset_mcap")
+            cmd = [
+                sys.executable,
+                str(script_path),
+                "--output",
+                str(output_path),
+                "--slam_frame_stride",
+                str(slam_frame_stride),
+                str(session),
+            ]
+        else:
+            script_path = script_dir.joinpath("07_generate_zarr_dataset.py")
+            if not script_path.is_file():
+                raise click.ClickException(f"Could not find script at: {script_path}")
+            output_path = session.joinpath("dataset.zarr.zip")
+            cmd = [
+                sys.executable,
+                str(script_path),
+                "--output",
+                str(output_path),
+                "--slam_frame_stride",
+                str(slam_frame_stride),
+                str(session),
+            ]
+        _run(cmd, "07_generate_dataset")
 
 
 if __name__ == "__main__":
