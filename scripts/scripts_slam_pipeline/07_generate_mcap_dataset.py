@@ -733,7 +733,7 @@ def main(
 
     is_mirror = None
     if mirror_swap:
-        mirror_mask = np.ones((native_h, native_w, 3), dtype=np.uint8)
+        mirror_mask = np.ones((image_h, image_w, 3), dtype=np.uint8)
         mirror_mask = draw_predefined_mask(
             mirror_mask, color=(0, 0, 0), mirror=True, gripper=False, finger=False
         )

@@ -116,11 +116,11 @@ INFO: 99% of raw data are used.
 INFO: Dropped demos: 0
 INFO: Saved dataset plan (2 episodes) to example_gopro13_dataset/dataset_plan.pkl
 INFO:
-############### 07_generate_replay_buffer ###############
-INFO: 2 videos used in total!
-100%|█████████████████████████████████████████████████████████████████████████████| 2/2 [00:19<00:00,  9.98s/it]
-INFO: Saving ReplayBuffer to example_gopro13_dataset/dataset.zarr.zip
-INFO: Done! 2 videos used in total!
+############### 07_generate_dataset (mcap) ###############
+INFO: Collected 2 episodes, 1 grippers, 1 cameras.
+INFO: Writing 2 episode MCAP files to example_gopro13_dataset/dataset_mcap
+Episodes: 100%|████████████████████████████████████████████████████████████████████| 2/2 [00:19<00:00,  9.98s/it]
+INFO: Done! 2 episode MCAP files written to example_gopro13_dataset/dataset_mcap
 ```
 
 For this dataset, 99% of the data are useable (successful SLAM), with 0 demonstrations dropped. If your dataset has a low SLAM success rate, double check if you carefully followed our [data collection instructions](#data-collection).
