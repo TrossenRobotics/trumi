@@ -15,7 +15,7 @@
        d. Resize the image (--out_res).
        e. Undistort via fisheye rectification (--out_fov).
        f. Apply mirror-swap augmentation (--mirror_swap).
-       g. JPEG-compress the image.
+       g. Encode as JPEG (default) or H.264 (--video_codec h264).
 
     3. Write one MCAP file per episode. Camera frames, EEF/gripper
        state, and IMU samples are merged in wall-clock order.
@@ -24,7 +24,8 @@
     - One .mcap file per episode (episode_NNNNNN.mcap)
     - Profile: trossen
     - JSON message encoding with jsonschema schemas
-    - foxglove.CompressedImage for camera frames (JPEG)
+    - foxglove.CompressedImage for camera frames (--video_codec jpeg)
+    - foxglove.CompressedVideo for camera frames (--video_codec h264)
     - Configurable chunk compression (--compression)
     - MCAP metadata record trumi_recording per episode
 
@@ -57,6 +58,7 @@ import multiprocessing
 import pathlib
 import pickle
 import types
+from fractions import Fraction
 
 import av
 import click
@@ -147,6 +149,23 @@ _SCHEMAS = {
         },
         "required": ["timestamp", "frame_id", "format", "data"],
     },
+    "foxglove.CompressedVideo": {
+        "type": "object",
+        "properties": {
+            "timestamp": {
+                "type": "object",
+                "properties": {
+                    "sec": {"type": "integer"},
+                    "nsec": {"type": "integer"},
+                },
+                "required": ["sec", "nsec"],
+            },
+            "frame_id": {"type": "string"},
+            "format": {"type": "string"},
+            "data": {"type": "string", "contentEncoding": "base64"},
+        },
+        "required": ["timestamp", "frame_id", "format", "data"],
+    },
 }
 
 _COMPRESSION_MAP = {
@@ -203,6 +222,21 @@ def _encode_compressed_image(img_rgb, t_ns, frame_id, quality=95):
     ).encode()
 
 
+def _encode_compressed_video(packet_bytes, t_ns, frame_id, fmt="h264"):
+    """Encode an H.264 packet as a foxglove.CompressedVideo JSON message."""
+    b64 = base64.b64encode(packet_bytes).decode("ascii")
+    sec = int(t_ns // 1_000_000_000)
+    nsec = int(t_ns % 1_000_000_000)
+    return json.dumps(
+        {
+            "timestamp": {"sec": sec, "nsec": nsec},
+            "frame_id": frame_id,
+            "format": fmt,
+            "data": b64,
+        }
+    ).encode()
+
+
 def _camera_frame_gen(source, cfg):
     """Yield (t_wall_ns, channel_key, encoded_bytes) for every raw frame."""
     cam_id = source["camera_idx"]
@@ -220,6 +254,9 @@ def _camera_frame_gen(source, cfg):
                 f"tag_detection.pkl not found (required for --inpaint_aruco): {pkl_path}"
             )
         aruco_detections = pickle.loads(pkl_path.read_bytes())
+
+    # H.264 encoder (created on first frame when needed)
+    encoder = None
 
     with av.open(video_path) as container:
         in_stream = container.streams.video[0]
@@ -259,12 +296,49 @@ def _camera_frame_gen(source, cfg):
                 img[cfg.is_mirror] = img[:, ::-1, :][cfg.is_mirror]
 
             t_wall_ns = int(frame_wall_times_s[ep_frame_idx] * 1e9)
+
+            if cfg.video_codec == "h264":
+                if encoder is None:
+                    h, w = img.shape[:2]
+                    encoder = av.CodecContext.create("libx264", "w")
+                    encoder.width = w
+                    encoder.height = h
+                    encoder.pix_fmt = "yuv420p"
+                    encoder.time_base = Fraction(1, int(cfg.video_fps))
+                    encoder.options = {
+                        "preset": "ultrafast",
+                        "crf": "20",
+                        "tune": "zerolatency",
+                        "x264-params": "bframes=0:repeat-headers=1",
+                    }
+                    encoder.open()
+
+                vid_frame = av.VideoFrame.from_ndarray(img, format="rgb24")
+                vid_frame.pts = ep_frame_idx
+                for packet in encoder.encode(vid_frame):
+                    yield (
+                        t_wall_ns,
+                        channel_key,
+                        _encode_compressed_video(
+                            bytes(packet), t_wall_ns, f"camera{cam_id}"
+                        ),
+                    )
+            else:
+                yield (
+                    t_wall_ns,
+                    channel_key,
+                    _encode_compressed_image(
+                        img, t_wall_ns, f"camera{cam_id}", cfg.jpeg_quality
+                    ),
+                )
+
+    # Flush H.264 encoder
+    if encoder is not None:
+        for packet in encoder.encode(None):
             yield (
                 t_wall_ns,
                 channel_key,
-                _encode_compressed_image(
-                    img, t_wall_ns, f"camera{cam_id}", cfg.jpeg_quality
-                ),
+                _encode_compressed_video(bytes(packet), t_wall_ns, f"camera{cam_id}"),
             )
 
 
@@ -320,9 +394,14 @@ def _write_episode(ep_idx, episode, cfg):
                 message_encoding="json",
             )
 
+        camera_schema = (
+            "foxglove.CompressedVideo"
+            if cfg.video_codec == "h264"
+            else "foxglove.CompressedImage"
+        )
         for cam_id in range(cfg.n_cameras):
             channel_ids[f"camera{cam_id}"] = writer.register_channel(
-                schema_id=schema_ids["foxglove.CompressedImage"],
+                schema_id=schema_ids[camera_schema],
                 topic=f"/cameras/camera{cam_id}/image",
                 message_encoding="json",
                 metadata={"stream_type": "color"},
@@ -342,6 +421,7 @@ def _write_episode(ep_idx, episode, cfg):
                 "slam_frame_stride": str(cfg.slam_frame_stride),
                 "compression": cfg.compression,
                 "jpeg_quality": str(cfg.jpeg_quality),
+                "video_codec": cfg.video_codec,
             },
         )
 
@@ -509,6 +589,14 @@ def _write_episode(ep_idx, episode, cfg):
     default=2,
     help="Frame stride used by SLAM and ArUco detection.",
 )
+@click.option(
+    "-vc",
+    "--video_codec",
+    type=click.Choice(["jpeg", "h264"], case_sensitive=False),
+    default="jpeg",
+    show_default=True,
+    help="Image encoding: 'jpeg' (per-frame JPEG) or 'h264' (H.264 video).",
+)
 def main(
     input_dirs,
     output,
@@ -523,6 +611,7 @@ def main(
     compression,
     num_workers,
     slam_frame_stride,
+    video_codec,
 ):
     """Generate an MCAP dataset from SLAM pipeline outputs.
 
@@ -539,6 +628,7 @@ def main(
     :param compression: MCAP chunk compression algorithm.
     :param num_workers: Number of parallel episode-writing threads.
     :param slam_frame_stride: Frame stride matching SLAM and ArUco detection rate.
+    :param video_codec: Image encoding — 'jpeg' or 'h264'.
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     output_path = pathlib.Path(output).expanduser().resolve()
@@ -773,6 +863,7 @@ def main(
         image_w=image_w,
         image_h=image_h,
         video_fps=video_fps,
+        video_codec=video_codec.lower(),
     )
 
     with tqdm(total=len(all_episodes), desc="Episodes") as pbar:
