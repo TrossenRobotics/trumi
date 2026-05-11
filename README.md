@@ -240,11 +240,11 @@ uv run python scripts/dataset_generation_pipeline.py <session_dir>
 uv run python scripts/dataset_generation_pipeline.py -f zarr <session_dir>
 ```
 
-**MCAP** — One `.mcap` file per episode in a directory (`dataset_mcap/`). Each file contains time-aligned robot state and JPEG-compressed camera images as typed, self-describing messages. MCAP files can be inspected with [Foxglove Studio](https://foxglove.dev/).
+**MCAP** — One `.mcap` file per episode in a directory (`dataset_mcap/`). Each file contains time-aligned robot state, JPEG-compressed camera images, and IMU telemetry (accelerometer + gyroscope) as typed, self-describing messages. MCAP files can be inspected with [Foxglove Studio](https://foxglove.dev/).
 
 **Zarr** — A single `dataset.zarr.zip` archive containing all episodes in a flat NumPy-backed replay buffer with JpegXl-compressed images.
 
-Both formats store identical data: per-step end-effector pose (position + axis-angle rotation), gripper width, demo start/end poses, and camera images.
+Both formats store per-step end-effector pose (position + axis-angle rotation), gripper width, demo start/end poses, and camera images. MCAP additionally includes raw IMU samples.
 
 
 ## License
