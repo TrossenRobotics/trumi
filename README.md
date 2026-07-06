@@ -6,6 +6,7 @@
 - [Dataset Generation Pipeline](#dataset-generation-pipeline)
 - [Data Collection](#data-collection)
 - [Dataset Formats](#dataset-formats)
+- [Documentation](#documentation)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
@@ -246,6 +247,17 @@ uv run python scripts/dataset_generation_pipeline.py -f zarr <session_dir>
 
 Both formats store per-step end-effector pose (position + axis-angle rotation), gripper width, demo start/end poses, and camera images. MCAP additionally includes raw IMU samples.
 
+
+## Documentation
+
+The full documentation — hardware, GoPro setup, software setup, data collection, and the dataset generation pipeline — is published at https://trossenrobotics.github.io/trumi/.
+
+To build and preview it locally:
+
+```bash
+make docs          # build to docs/_build/html/index.html
+make docs-serve    # build and serve at http://localhost:8000
+```
 
 ## License
 
