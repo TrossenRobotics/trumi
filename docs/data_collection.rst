@@ -26,7 +26,7 @@ Markers and Identifiers
 TRumi uses two kinds of visual markers, both included in the kit:
 
 - **Mapping marker** — a printed ArUco target placed in the scene to anchor the SLAM map and set metric scale.
-- **Gripper finger identifiers** — embedded multicolor identifiers built into the finger mounts, used to measure gripper width.
+- **Gripper finger identifiers** — multicolor identifiers embedded in the finger mounts, based on the ArUco tags listed below (IDs 0, 1, 6, 7), used to measure gripper width.
 
 Printable PDFs of every marker are available in the table below, in case you ever need a replacement.
 
@@ -82,8 +82,12 @@ SLAM success rate is **highly sensitive** to the scene and to how you record thi
 - Prefer environments with enough visual texture.
 - Avoid large plain surfaces (white walls, bare ceilings, empty corners).
 
-Place the printed mapping marker on the table and follow the mapping process carefully.
-Correct marker placement is critical for SLAM success rate.
+Place the printed mapping marker on the work surface where you will record your demonstrations.
+To record the mapping video, hold the gripper and move slowly and smoothly through the workspace, viewing the scene from a range of positions, heights, and angles so SLAM captures enough of the environment.
+Keep the mapping marker in frame, avoid fast motion and motion blur, and revisit areas you have already covered so SLAM can close loops.
+Correct marker placement and thorough coverage are critical for SLAM success rate.
+
+For reference, see the `example mapping video <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/mapping.mp4>`_ from the example dataset.
 
 .. TODO: add photo/video demonstrating the mapping motion and marker placement.
 
@@ -93,13 +97,16 @@ Step 2: Gripper Calibration Video
 Record a short video of opening and closing the gripper **5 times**.
 This is used to calibrate gripper finger tag detection.
 
+For reference, see the `example gripper calibration video <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/gripper_calibration/GX010167.MP4>`_ from the example dataset.
+
 .. TODO: add photo/video of the gripper calibration recording.
 
 Step 3: Demonstrations
 ======================
 
 Record *N* demonstration videos.
-The number of demonstrations needed depends on task complexity and environment variability.
+
+For reference, the example dataset includes two sample demonstration videos: `episode 1 <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/GX010168.MP4>`_ and `episode 2 <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/GX010169.MP4>`_.
 
 .. tip::
 
@@ -113,7 +120,7 @@ Best Practices
 
 - **Texture matters.** SLAM relies on visual features.
   Richly textured scenes track far better than plain ones.
-- **Keep the mapping marker visible and correctly placed.** It anchors the map and sets scale.
+- **Keep the mapping marker visible and correctly placed during the mapping step.** It anchors the map and sets scale.
 - **Move smoothly.** Avoid rapid jerks and motion blur, which degrade both SLAM and ArUco detection.
 - **Keep lighting consistent.** Avoid strong glare and heavy shadows on the markers.
 - **Verify your printed marker sizes** before collecting a large batch of data.
