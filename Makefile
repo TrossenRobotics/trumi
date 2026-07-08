@@ -1,19 +1,22 @@
 DOCS_DIR ?= docs
 DOCS_BUILD_DIR ?= $(DOCS_DIR)/_build
 DOCS_PORT ?= 8000
-UV ?= uv
+
+# Isolated environment for the docs build (only the `docs` dependency group).
+export UV_PROJECT_ENVIRONMENT := $(DOCS_BUILD_DIR)/venv
 
 docs:
-	$(UV) run --group docs python -m sphinx -b html $(DOCS_DIR) $(DOCS_BUILD_DIR)/html
-	@echo "Docs built: $(DOCS_BUILD_DIR)/html/index.html"
+	uv sync --only-group docs
+	uv run --no-sync sphinx-build -b html $(DOCS_DIR) $(DOCS_BUILD_DIR)/html
 .PHONY: docs
 
 docs-strict:
-	$(UV) run --group docs python -m sphinx -W --keep-going -b html $(DOCS_DIR) $(DOCS_BUILD_DIR)/html
+	uv sync --only-group docs
+	uv run --no-sync sphinx-build -W --keep-going -b html $(DOCS_DIR) $(DOCS_BUILD_DIR)/html
 .PHONY: docs-strict
 
 docs-serve: docs
-	$(UV) run --group docs python -m http.server $(DOCS_PORT) --directory $(DOCS_BUILD_DIR)/html
+	uv run --no-sync python -m http.server $(DOCS_PORT) --directory $(DOCS_BUILD_DIR)/html
 .PHONY: docs-serve
 
 docs-clean:
