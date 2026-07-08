@@ -41,7 +41,7 @@ Hardware Specifications
     * - Trigger pull force
       - 0.4 lb
     * - Finger identifiers
-      - Embedded multicolor identifiers, built into the finger mounts
+      - Embedded multicolor identifiers, built into the finger mounts (see :ref:`aruco-markers`)
     * - Overall dimensions (max)
       - 242.9 × 215.7 × 176.0 mm (see drawing)
     * - Mass
