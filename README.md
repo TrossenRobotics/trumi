@@ -59,13 +59,13 @@ uv run pre-commit install
 
 ## Dataset Generation Pipeline
 
-An example dataset is available on [Hugging Face](https://huggingface.co/datasets/TrossenRoboticsCommunity/trumi-dataset) to try the pipeline without recording your own data.
+An example dataset is available on [Hugging Face](https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset) to try the pipeline without recording your own data.
 
-Download it using the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) (downloads into the current directory, preserving the `example_gopro13_dataset/` folder structure):
+Download it using the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) (downloads into the current directory, preserving the `example_trumi_dataset/` folder structure):
 
 ```bash
 cd ~/trumi
-hf download TrossenRoboticsCommunity/trumi-dataset \
+hf download TrossenRoboticsCommunity/example_trumi_dataset \
     --repo-type dataset \
     --local-dir .
 ```
@@ -98,7 +98,7 @@ uv run python scripts/dataset_generation_pipeline.py <session_dir>
 For example, using the downloaded example dataset:
 
 ```bash
-uv run python scripts/dataset_generation_pipeline.py example_gopro13_dataset
+uv run python scripts/dataset_generation_pipeline.py example_trumi_dataset
 ```
 
 Example output (truncated to final steps):
@@ -115,13 +115,13 @@ camera_idx
 0           C3534250760071               0  demo_C3534250760071_2026.03.31_20.59.03.643175_GX010168.MP4
 INFO: 99% of raw data are used.
 INFO: Dropped demos: 0
-INFO: Saved dataset plan (2 episodes) to example_gopro13_dataset/dataset_plan.pkl
+INFO: Saved dataset plan (2 episodes) to example_trumi_dataset/dataset_plan.pkl
 INFO:
 ############### 07_generate_dataset (mcap) ###############
 INFO: Collected 2 episodes, 1 grippers, 1 cameras.
-INFO: Writing 2 episode MCAP files to example_gopro13_dataset/dataset_mcap
+INFO: Writing 2 episode MCAP files to example_trumi_dataset/dataset_mcap
 Episodes: 100%|████████████████████████████████████████████████████████████████████| 2/2 [00:19<00:00,  9.98s/it]
-INFO: Done! 2 episode MCAP files written to example_gopro13_dataset/dataset_mcap
+INFO: Done! 2 episode MCAP files written to example_trumi_dataset/dataset_mcap
 ```
 
 For this dataset, 99% of the data are useable (successful SLAM), with 0 demonstrations dropped. If your dataset has a low SLAM success rate, double check if you carefully followed our [data collection instructions](#data-collection).
@@ -250,7 +250,7 @@ Both formats store per-step end-effector pose (position + axis-angle rotation), 
 
 ## Documentation
 
-The full documentation — hardware, GoPro setup, software setup, data collection, and the dataset generation pipeline — is published at https://trossenrobotics.github.io/trumi/.
+The full documentation — hardware, GoPro setup, software setup, data collection, and the dataset generation pipeline — is published at https://docs.trossenrobotics.com/trumi/.
 
 To build and preview it locally:
 

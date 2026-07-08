@@ -66,14 +66,14 @@ If you plan to contribute, install the pre-commit hooks:
 Try It Without Recording (Optional)
 ===================================
 
-An example dataset is available on `Hugging Face <https://huggingface.co/datasets/TrossenRoboticsCommunity/trumi-dataset>`_ so you can try the pipeline before recording your own data.
+An example dataset is available on `Hugging Face <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset>`_ so you can try the pipeline before recording your own data.
 
-Download it with the `Hugging Face CLI <https://huggingface.co/docs/huggingface_hub/guides/cli>`_ (downloads into the current directory, preserving the ``example_gopro13_dataset/`` folder structure):
+Download it with the `Hugging Face CLI <https://huggingface.co/docs/huggingface_hub/guides/cli>`_ (downloads into the current directory, preserving the ``example_trumi_dataset/`` folder structure):
 
 .. code-block:: bash
 
     cd ~/trumi
-    hf download TrossenRoboticsCommunity/trumi-dataset \
+    hf download TrossenRoboticsCommunity/example_trumi_dataset \
         --repo-type dataset \
         --local-dir .
 

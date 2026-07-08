@@ -38,7 +38,7 @@ For example, using the downloaded example dataset:
 
 .. code-block:: bash
 
-    uv run python scripts/dataset_generation_pipeline.py example_gopro13_dataset
+    uv run python scripts/dataset_generation_pipeline.py example_trumi_dataset
 
 You can pass more than one session directory to process several sessions in sequence.
 By default the pipeline writes an MCAP dataset; pass ``-f zarr`` to write Zarr instead (see :ref:`dataset_generation-dataset-formats`).
@@ -58,15 +58,15 @@ Example output (truncated to the final steps):
     0           C3534250760071               0  demo_C3534250760071_2026.03.31_20.59.03.643175_GX010168.MP4
     INFO: 99% of raw data are used.
     INFO: Dropped demos: 0
-    INFO: Saved dataset plan (2 episodes) to example_gopro13_dataset/dataset_plan.pkl
+    INFO: Saved dataset plan (2 episodes) to example_trumi_dataset/dataset_plan.pkl
     INFO:
     ############### 07_generate_dataset (mcap) ###############
     INFO: Collected 2 episodes, 1 grippers, 1 cameras.
-    INFO: Writing 2 episode MCAP files to example_gopro13_dataset/dataset_mcap
+    INFO: Writing 2 episode MCAP files to example_trumi_dataset/dataset_mcap
     Episodes: 100%|████████████████████████████████████████| 2/2 [00:19<00:00,  9.98s/it]
-    INFO: Done! 2 episode MCAP files written to example_gopro13_dataset/dataset_mcap
+    INFO: Done! 2 episode MCAP files written to example_trumi_dataset/dataset_mcap
 
-For this dataset, 99% of the data are usable (successful SLAM), with 0 demonstrations dropped.
+For this dataset, 99% of the data is usable (successful SLAM), with 0 demonstrations dropped.
 If your dataset has a low SLAM success rate, revisit the :doc:`/data_collection` guidance.
 
 Pipeline Stages
