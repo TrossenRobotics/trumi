@@ -17,7 +17,7 @@
     3. Save the completed ReplayBuffer as a .zarr.zip at --output.
 
 :Usage:
-    uv run python scripts/scripts_slam_pipeline/07_generate_replay_buffer.py \\
+    uv run python scripts/scripts_slam_pipeline/07_generate_zarr_dataset.py \\
         -o <session_dir>/dataset.zarr.zip \\
         <session_dir>
 """
