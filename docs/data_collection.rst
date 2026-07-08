@@ -108,11 +108,6 @@ Record *N* demonstration videos.
 
 For reference, the example dataset includes two sample demonstration videos: `episode 1 <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/GX010168.MP4>`_ and `episode 2 <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/GX010169.MP4>`_.
 
-.. tip::
-
-    We recommend **100 demonstrations** for a single task in a fixed environment.
-    Increase this for more complex tasks or greater environment variation.
-
 .. TODO: add photo/video of a demonstration being collected.
 
 Best Practices

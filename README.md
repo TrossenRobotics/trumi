@@ -124,7 +124,7 @@ Episodes: 100%|█████████████████████�
 INFO: Done! 2 episode MCAP files written to example_trumi_dataset/dataset_mcap
 ```
 
-For this dataset, 99% of the data are useable (successful SLAM), with 0 demonstrations dropped. If your dataset has a low SLAM success rate, double check if you carefully followed our [data collection instructions](#data-collection).
+For this dataset, 99% of the data is usable (successful SLAM), with 0 demonstrations dropped. If your dataset has a low SLAM success rate, double check if you carefully followed our [data collection instructions](#data-collection).
 
 **Notes:**
 
@@ -204,9 +204,9 @@ The mapping video is used by ORB-SLAM3 to build a 3D map of the environment. SLA
 - Prefer environments with enough visual texture
 - Avoid large plain surfaces (white walls, bare ceilings, empty corners)
 
-We provide printed mapping markers — place the marker on the table and follow the mapping process carefully. Correct placement is critical for SLAM success rate.
+We provide the printed mapping marker — place it on the work surface and follow the mapping process carefully. Correct placement is critical for SLAM success rate.
 
-To print your own markers, use the files in [`assets/aruco_markers/`](assets/aruco_markers/). The physical printed size must match exactly — incorrect sizes will produce inaccurate poses and gripper widths:
+The gripper finger identifiers are embedded in the finger mounts, so you normally do not need to print anything. Printable copies of every marker are provided in [`assets/aruco_markers/`](assets/aruco_markers/) in case you need a replacement. The physical printed size must match exactly — incorrect sizes will produce inaccurate poses and gripper widths:
 
 | Marker | Dictionary | ID | Size |
 |---|---|---|---|
@@ -226,7 +226,7 @@ Record a short video of opening and closing the gripper 5 times. This is used to
 
 <!-- TODO: add photo/video of demonstration collection -->
 
-Record *N* demonstration videos. The number of demonstrations needed depends on task complexity and environment variability. We recommend 200 demonstrations for a single task in a fixed environment.
+Record *N* demonstration videos.
 
 
 ## Dataset Formats
