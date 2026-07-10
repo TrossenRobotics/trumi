@@ -4,6 +4,7 @@ TRumi Documentation
 
 .. image:: images/trumi_action_shot.png
     :align: center
+    :width: 600px
 
 **TRumi** (Trossen Robotics Universal Manipulation Interface) is a handheld manipulation data collection system.
 A parallel-jaw gripper with a wrist-mounted GoPro lets you capture manipulation demonstrations anywhere — no full robot setup required — and turn them into structured datasets for imitation learning.
