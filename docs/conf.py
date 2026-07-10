@@ -31,6 +31,8 @@ language = "en"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 pygments_style = "sphinx"
 
+templates_path = ["_templates"]
+
 # -- HTML output -------------------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
