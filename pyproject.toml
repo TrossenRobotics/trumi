@@ -16,6 +16,7 @@ dependencies = [
     "pandas>=3.0.1",
     "py-gpmf-parser>=0.1.1",
     "pyexiftool>=0.5.6",
+    "pyyaml>=6.0.3",
     "scikit-fda>=0.10.1",
     "scipy>=1.17.1",
     "tqdm>=4.67.3",
