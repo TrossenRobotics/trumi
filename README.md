@@ -126,37 +126,36 @@ INFO: Done! 2 episode MCAP files written to example_trumi_dataset/dataset_mcap
 
 For this dataset, 99% of the data is usable (successful SLAM), with 0 demonstrations dropped. If your dataset has a low SLAM success rate, double check if you carefully followed our [data collection instructions](#data-collection).
 
-**Notes:**
-
-- SLAM processes frames at a lower rate than the recorded video to ensure enough IMU samples
-  accumulate between consecutive SLAM frames (minimum 3 samples/frame at 200 Hz IMU rate). For a
-  120 fps recording this means SLAM runs at 60 fps (skip=2). Check the `skip` value for your
-  recording from the log file produced during the mapping SLAM step
-  (`<session_dir>/demos/mapping_*/slam_stdout_mapping.txt`):
-  ```
-  Video: 119.88 fps  |  SLAM: 59.9401 fps (skip=2)  |  IMU/frame: 3.33667
-  ```
-  Pass the `skip` value as `--slam_frame_stride` to `dataset_generation_pipeline.py` (and to
-  `04_detect_aruco.py`, `06_generate_dataset_plan.py`, `07_generate_mcap_dataset.py`, and
-  `07_generate_zarr_dataset.py` when running steps manually). The default is `2` (120 fps → 60 fps SLAM).
-
-- To inspect intermediate results, visualization scripts are provided:
-
-  - **SLAM trajectory** — plots the ORB-SLAM3 camera trajectory from a session's
-    `camera_trajectory.csv` as a 3D path (purple = start, yellow = end):
-    ```bash
-    uv run python scripts/visualize_trajectory.py -t <demo_dir>/camera_trajectory.csv
-    ```
-
-  - **ArUco tag detections** — renders tag detections overlaid on the source video and writes an
-    annotated MP4:
-    ```bash
-    uv run python scripts/visualize_aruco_video.py \
-        -i <demo_dir> \
-        -ci <path/to/intrinsics.json> \
-        -sfs <slam_frame_stride> \
-        -o <output.mp4>
-    ```
+> [!NOTE]
+> - SLAM processes frames at a lower rate than the recorded video to ensure enough IMU samples
+>   accumulate between consecutive SLAM frames (minimum 3 samples/frame at 200 Hz IMU rate). For a
+>   120 fps recording this means SLAM runs at 60 fps (skip=2). Check the `skip` value for your
+>   recording from the log file produced during the mapping SLAM step
+>   (`<session_dir>/demos/mapping_*/slam_stdout_mapping.txt`):
+>   ```
+>   Video: 119.88 fps  |  SLAM: 59.9401 fps (skip=2)  |  IMU/frame: 3.33667
+>   ```
+>   Pass the `skip` value as `--slam_frame_stride` to `dataset_generation_pipeline.py` (and to
+>   `04_detect_aruco.py`, `06_generate_dataset_plan.py`, `07_generate_mcap_dataset.py`, and
+>   `07_generate_zarr_dataset.py` when running steps manually). The default is `2` (120 fps → 60 fps SLAM).
+>
+> - To inspect intermediate results, visualization scripts are provided:
+>
+>   - **SLAM trajectory** — plots the ORB-SLAM3 camera trajectory from a session's
+>     `camera_trajectory.csv` as a 3D path (purple = start, yellow = end):
+>     ```bash
+>     uv run python scripts/visualize_trajectory.py -t <demo_dir>/camera_trajectory.csv
+>     ```
+>
+>   - **ArUco tag detections** — renders tag detections overlaid on the source video and writes an
+>     annotated MP4:
+>     ```bash
+>     uv run python scripts/visualize_aruco_video.py \
+>         -i <demo_dir> \
+>         -ci <path/to/intrinsics.json> \
+>         -sfs <slam_frame_stride> \
+>         -o <output.mp4>
+>     ```
 
 
 ## Data Collection
@@ -179,11 +178,13 @@ Once the settings are saved, the GoPro screen will show **"Labs-Trumi"** with th
 
 ![Camera settings saved confirmation](assets/camera_settings_saved_check.jpg)
 
-**Note:** When using with ultra-wide lens, disable auto lens detection and manually set the lens to standard (Preferences > Lens Mod > Standard). This prevents GoPro from applying additional distortion correction, ensuring raw undistorted frames are saved.
+> [!NOTE]
+> When using with ultra-wide lens, disable auto lens detection and manually set the lens to standard (Preferences > Lens Mod > Standard). This prevents GoPro from applying additional distortion correction, ensuring raw undistorted frames are saved.
 
 ### Step 1: Timecode Sync
 
-**Note:** This step is only required for bi-manual (two-gripper) data collection. Skip it if you are using a single gripper.
+> [!NOTE]
+> This step is only required for bi-manual (two-gripper) data collection. Skip it if you are using a single gripper.
 
 Serve the timecode sync page locally and open the printed URL in a browser, then scan the refreshing QR code using your GoPro (requires Labs firmware). Precise synchronization between the two grippers is critical for bi-manual data collection.
 
@@ -228,13 +229,13 @@ Record a short video of opening and closing the gripper 5 times. This is used to
 
 Record *N* demonstration videos.
 
-**Notes:**
-SLAM localizes each demonstration against the mapping video, so the scene must match the mapping video:
-
-- Do not move, add, or remove objects between mapping and the demonstrations
-- Start each demonstration looking at the mapped work surface
-
-If the scene changes, SLAM cannot localize the demonstrations and they will be dropped.
+> [!NOTE]
+> SLAM localizes each demonstration against the mapping video, so the scene must match the mapping video:
+>
+> - Do not move, add, or remove objects between mapping and the demonstrations
+> - Start each demonstration looking at the mapped work surface
+>
+> If the scene changes, SLAM cannot localize the demonstrations and they will be dropped.
 
 
 ## Dataset Formats
