@@ -106,6 +106,15 @@ Step 3: Demonstrations
 
 Record *N* demonstration videos.
 
+.. note::
+
+   SLAM localizes each demonstration against the mapping video, so the scene must match the mapping video:
+
+   - Do not move, add, or remove objects between mapping and the demonstrations.
+   - Start each demonstration looking at the mapped work surface.
+
+   If the scene changes, SLAM cannot localize the demonstrations and they will be dropped.
+
 For reference, the example dataset includes two sample demonstration videos: `episode 1 <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/GX010168.MP4>`_ and `episode 2 <https://huggingface.co/datasets/TrossenRoboticsCommunity/example_trumi_dataset/blob/main/example_trumi_dataset/raw_videos/GX010169.MP4>`_.
 
 .. TODO: add photo/video of a demonstration being collected.
@@ -116,6 +125,7 @@ Best Practices
 - **Texture matters.** SLAM relies on visual features.
   Richly textured scenes track far better than plain ones.
 - **Keep the mapping marker visible and correctly placed during the mapping step.** It anchors the map and sets scale.
+- **Keep the scene unchanged after mapping.** Moving, adding, or removing objects breaks localization of the demonstrations.
 - **Move smoothly.** Avoid rapid jerks and motion blur, which degrade both SLAM and ArUco detection.
 - **Keep lighting consistent.** Avoid strong glare and heavy shadows on the markers.
 - **Verify your printed marker sizes** before collecting a large batch of data.
