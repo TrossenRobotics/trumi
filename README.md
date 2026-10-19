@@ -228,6 +228,14 @@ Record a short video of opening and closing the gripper 5 times. This is used to
 
 Record *N* demonstration videos.
 
+**Notes:**
+SLAM localizes each demonstration against the mapping video, so the scene must match the mapping video:
+
+- Do not move, add, or remove objects between mapping and the demonstrations
+- Start each demonstration looking at the mapped work surface
+
+If the scene changes, SLAM cannot localize the demonstrations and they will be dropped.
+
 
 ## Dataset Formats
 
