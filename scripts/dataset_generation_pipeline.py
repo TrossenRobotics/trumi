@@ -8,12 +8,13 @@
     4. Detect ArUco tags in all demo videos.
     5. Run SLAM tag and gripper range calibrations.
     6. Generate dataset_plan.pkl.
-    7. Generate the dataset (MCAP or Zarr replay buffer).
+    7. Generate the dataset (MCAP, Zarr replay buffer or LeRobot v3).
 
 :Usage:
     uv run python scripts/dataset_generation_pipeline.py <session_dir> [<session_dir> ...]
 """
 
+import importlib.util
 import logging
 import pathlib
 import subprocess
@@ -42,7 +43,7 @@ def _run(cmd: list, step_name: str) -> None:
     "-f",
     "--format",
     "dataset_format",
-    type=click.Choice(["mcap", "zarr"], case_sensitive=False),
+    type=click.Choice(["mcap", "zarr", "lerobot"], case_sensitive=False),
     default="mcap",
     show_default=True,
     help="Output dataset format.",
@@ -54,18 +55,30 @@ def _run(cmd: list, step_name: str) -> None:
     default=2,
     help="Frame stride used by SLAM and ArUco (raw_fps / slam_fps).",
 )
-def main(session_dir, calibration_dir, dataset_format, slam_frame_stride):
+@click.option(
+    "-t",
+    "--task",
+    default="",
+    help="Task description stored with every frame (lerobot format only).",
+)
+def main(session_dir, calibration_dir, dataset_format, slam_frame_stride, task):
     """Run the full dataset generation pipeline for each session directory.
 
     :param session_dir: One or more session directories to process.
     :param calibration_dir: Path to the calibration directory containing
         gopro13_intrinsics_2_7k.json and aruco_config.yaml. Defaults to
         example/calibration/ relative to the repository root.
-    :param dataset_format: Output format — 'mcap' (default) or 'zarr'.
+    :param dataset_format: Output format — 'mcap' (default), 'zarr' or 'lerobot'.
     :param slam_frame_stride: Frame stride matching SLAM/ArUco detection rate
         (raw_fps / slam_fps). Default 2 matches 120 fps -> 60 fps SLAM.
+    :param task: Task description stored with every frame (lerobot format only).
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    # fail early
+    if dataset_format == "lerobot" and importlib.util.find_spec("lerobot") is None:
+        raise click.ClickException(
+            "lerobot is not installed. Run: uv sync --extra lerobot"
+        )
     script_dir = pathlib.Path(__file__).parent.joinpath("scripts_slam_pipeline")
     if calibration_dir is None:
         calibration_dir = (
@@ -241,7 +254,7 @@ def main(session_dir, calibration_dir, dataset_format, slam_frame_stride):
                 str(slam_frame_stride),
                 str(session),
             ]
-        else:
+        elif dataset_format == "zarr":
             script_path = script_dir.joinpath("07_generate_zarr_dataset.py")
             if not script_path.is_file():
                 raise click.ClickException(f"Could not find script at: {script_path}")
@@ -251,6 +264,22 @@ def main(session_dir, calibration_dir, dataset_format, slam_frame_stride):
                 str(script_path),
                 "--output",
                 str(output_path),
+                "--slam_frame_stride",
+                str(slam_frame_stride),
+                str(session),
+            ]
+        else:
+            script_path = script_dir.joinpath("07_generate_lerobot_dataset.py")
+            if not script_path.is_file():
+                raise click.ClickException(f"Could not find script at: {script_path}")
+            output_path = session.joinpath("dataset_lerobot")
+            cmd = [
+                sys.executable,
+                str(script_path),
+                "--output",
+                str(output_path),
+                "--task",
+                task,
                 "--slam_frame_stride",
                 str(slam_frame_stride),
                 str(session),
