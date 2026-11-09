@@ -136,8 +136,8 @@ For this dataset, 99% of the data is usable (successful SLAM), with 0 demonstrat
 >   Video: 119.88 fps  |  SLAM: 59.9401 fps (skip=2)  |  IMU/frame: 3.33667
 >   ```
 >   Pass the `skip` value as `--slam_frame_stride` to `dataset_generation_pipeline.py` (and to
->   `04_detect_aruco.py`, `06_generate_dataset_plan.py`, `07_generate_mcap_dataset.py`, and
->   `07_generate_zarr_dataset.py` when running steps manually). The default is `2` (120 fps → 60 fps SLAM).
+>   `04_detect_aruco.py`, `06_generate_dataset_plan.py`, `07_generate_mcap_dataset.py`,
+>   `07_generate_zarr_dataset.py`, and `07_generate_lerobot_dataset.py` when running steps manually). The default is `2` (120 fps → 60 fps SLAM).
 >
 > - To inspect intermediate results, visualization scripts are provided:
 >
@@ -240,7 +240,7 @@ Record *N* demonstration videos.
 
 ## Dataset Formats
 
-The pipeline supports two output formats, selectable via `--format` (`-f`):
+The pipeline supports three output formats, selectable via `--format` (`-f`):
 
 ```bash
 # MCAP (default)
@@ -248,13 +248,19 @@ uv run python scripts/dataset_generation_pipeline.py <session_dir>
 
 # Zarr
 uv run python scripts/dataset_generation_pipeline.py -f zarr <session_dir>
+
+# LeRobot v3 (install the lerobot extra first)
+uv sync --extra lerobot
+uv run python scripts/dataset_generation_pipeline.py -f lerobot -t "<task description>" <session_dir>
 ```
 
 **MCAP** — One `.mcap` file per episode in a directory (`dataset_mcap/`). Each file contains time-aligned robot state, JPEG-compressed camera images, and IMU telemetry (accelerometer + gyroscope) as typed, self-describing messages. MCAP files can be inspected with [Foxglove Studio](https://foxglove.dev/).
 
 **Zarr** — A single `dataset.zarr.zip` archive containing all episodes in a flat NumPy-backed replay buffer with JpegXl-compressed images.
 
-Both formats store per-step end-effector pose (position + axis-angle rotation), gripper width, demo start/end poses, and camera images. MCAP additionally includes raw IMU samples.
+**LeRobot** — A [LeRobot v3](https://huggingface.co/docs/lerobot/lerobot-dataset-v3) dataset in `dataset_lerobot/` (Parquet data and H.264 MP4 videos) that can be loaded with `LeRobotDataset`. `action` holds each gripper's end-effector pose and gripper width at the current step, and camera images are stored as `observation.images.camera{N}` (224×224 by default). Set the task description with `--task`.
+
+All formats store per-step end-effector pose (position + axis-angle rotation), gripper width, demo start/end poses, and camera images. MCAP additionally includes raw IMU samples.
 
 
 ## Documentation

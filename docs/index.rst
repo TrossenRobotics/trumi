@@ -10,7 +10,7 @@ TRumi Documentation
 A parallel-jaw gripper with a wrist-mounted GoPro lets you capture manipulation demonstrations anywhere — no full robot setup required — and turn them into structured datasets for imitation learning.
 
 These docs walk through the complete process: from setting up the hardware, to configuring the GoPro, to running the dataset generation pipeline that uses visual-inertial SLAM on the GoPro video and IMU data to estimate the gripper's motion through space.
-The pipeline outputs a structured ``.zarr`` or ``.mcap`` dataset ready for downstream policy training.
+The pipeline outputs a structured ``.zarr``, ``.mcap``, or LeRobot dataset ready for downstream policy training.
 
 .. toctree::
     :maxdepth: 1
