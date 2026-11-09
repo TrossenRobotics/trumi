@@ -3,7 +3,7 @@ Dataset Generation Pipeline
 ===========================
 
 Once you have recorded a session, the dataset generation pipeline turns the raw GoPro videos into a structured dataset.
-It extracts IMU telemetry, runs visual-inertial SLAM to estimate the gripper trajectory, detects ArUco tags, calibrates gripper width, and packages everything into an MCAP or Zarr dataset.
+It extracts IMU telemetry, runs visual-inertial SLAM to estimate the gripper trajectory, detects ArUco tags, calibrates gripper width, and packages everything into an MCAP, Zarr, or LeRobot dataset.
 
 Before You Run
 ==============
@@ -41,7 +41,7 @@ For example, using the downloaded example dataset:
     uv run python scripts/dataset_generation_pipeline.py example_trumi_dataset
 
 You can pass more than one session directory to process several sessions in sequence.
-By default the pipeline writes an MCAP dataset; pass ``-f zarr`` to write Zarr instead (see :ref:`dataset_generation-dataset-formats`).
+By default the pipeline writes an MCAP dataset; pass ``-f zarr`` or ``-f lerobot`` to write Zarr or LeRobot instead (see :ref:`dataset_generation-dataset-formats`).
 
 Example output (truncated to the final steps):
 
@@ -105,8 +105,8 @@ Each stage is an individual script under ``scripts/scripts_slam_pipeline/`` and 
       - ``06_generate_dataset_plan.py``
       - Generates ``dataset_plan.pkl``.
     * - 07
-      - ``07_generate_mcap_dataset.py`` / ``07_generate_zarr_dataset.py``
-      - Packages the demonstrations into the chosen output format (MCAP or Zarr).
+      - ``07_generate_mcap_dataset.py`` / ``07_generate_zarr_dataset.py`` / ``07_generate_lerobot_dataset.py``
+      - Packages the demonstrations into the chosen output format (MCAP, Zarr, or LeRobot).
 
 .. _dataset_generation-slam-frame-stride:
 
@@ -128,7 +128,7 @@ Pass this value as ``--slam_frame_stride`` to ``dataset_generation_pipeline.py``
 
     uv run python scripts/dataset_generation_pipeline.py <session_dir> --slam_frame_stride 2
 
-The same value must be passed to ``04_detect_aruco.py``, ``06_generate_dataset_plan.py``, ``07_generate_mcap_dataset.py``, and ``07_generate_zarr_dataset.py`` when running those steps manually.
+The same value must be passed to ``04_detect_aruco.py``, ``06_generate_dataset_plan.py``, ``07_generate_mcap_dataset.py``, ``07_generate_zarr_dataset.py``, and ``07_generate_lerobot_dataset.py`` when running those steps manually.
 The default is ``2`` (120 fps → 60 fps SLAM).
 
 Inspecting Results
@@ -157,7 +157,7 @@ Two visualization scripts help you inspect intermediate results.
 Dataset Formats
 ===============
 
-The pipeline supports two output formats, selected with ``--format`` (``-f``):
+The pipeline supports three output formats, selected with ``--format`` (``-f``):
 
 .. code-block:: bash
 
@@ -167,12 +167,21 @@ The pipeline supports two output formats, selected with ``--format`` (``-f``):
     # Zarr
     uv run python scripts/dataset_generation_pipeline.py -f zarr <session_dir>
 
+    # LeRobot v3 (install the lerobot extra first)
+    uv sync --extra lerobot
+    uv run python scripts/dataset_generation_pipeline.py -f lerobot -t "<task description>" <session_dir>
+
 **MCAP** writes one ``.mcap`` file per episode into a ``dataset_mcap/`` directory.
 Each file contains time-aligned robot state, JPEG-compressed camera images, and IMU telemetry (accelerometer and gyroscope) as typed, self-describing messages.
 MCAP files can be inspected with `Foxglove <https://foxglove.dev/>`_.
 
 **Zarr** writes a single ``dataset.zarr.zip`` archive containing all episodes in a flat, NumPy-backed replay buffer with JpegXL-compressed images.
 
-Both formats store per-step end-effector pose (position and axis-angle rotation), gripper width, demo start/end poses, and camera images.
+**LeRobot** writes a `LeRobot v3 <https://huggingface.co/docs/lerobot/lerobot-dataset-v3>`_ dataset (Parquet data and H.264 MP4 videos) into a ``dataset_lerobot/`` directory.
+It can be loaded with ``LeRobotDataset``.
+``action`` holds each gripper's end-effector pose and gripper width at the current step, and camera images are stored as ``observation.images.camera{N}`` (224×224 by default).
+Set the task description with ``--task``.
+
+All formats store per-step end-effector pose (position and axis-angle rotation), gripper width, demo start/end poses, and camera images.
 MCAP additionally includes the raw IMU samples.
 Alongside the dataset, the pipeline also writes ``dataset_plan.pkl`` — the plan describing which demonstrations are used.
